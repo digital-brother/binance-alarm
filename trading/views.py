@@ -1,5 +1,13 @@
 import websocket
 import ssl
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+# from .forms import SignUpForm
+from .models import CustomUser
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from .forms import CustomUserCreationForm
 
 
 def my_view(request):
@@ -46,3 +54,15 @@ def my_view(request):
         currencies = ['btcusdt', 'ethusdt', 'bnbusdt']
         intervals = ['1s', '1s', '1s']
         streamKline(currencies, intervals)
+
+
+def register(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('my-page')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'trading/register.html', {'form': form})
