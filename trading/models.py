@@ -24,7 +24,6 @@ class PhoneNumberManager(BaseUserManager):
 
 class PhoneNumber(AbstractBaseUser, PermissionsMixin):
     phone_number = PhoneNumberField(blank=True, unique=True, region='UA')
-    is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     pause_service = models.BooleanField(default=False)
@@ -39,8 +38,8 @@ class PhoneNumber(AbstractBaseUser, PermissionsMixin):
 
 class Coin(models.Model):
     phone_number = models.ForeignKey(PhoneNumber, on_delete=models.CASCADE)
-    coin = models.CharField(max_length=255)
+    short_name_coin = models.CharField(max_length=255)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return str(self.coin)
+        return str(self.short_name_coin)
