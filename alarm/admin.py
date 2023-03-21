@@ -1,10 +1,15 @@
 from django.contrib import admin
 
-from trading.models import Coin, PhoneNumber
+from .models import PhoneNumber, Coin
+
+
+class CoinInline(admin.TabularInline):
+    model = Coin
+    extra = 1
 
 
 class PhoneNumberAdmin(admin.ModelAdmin):
-    exclude = ('is_staff', 'is_superuser', 'is_admin', 'user_permissions', 'groups', 'last_login', 'password')
+    inlines = [CoinInline]
 
 
 admin.site.register(PhoneNumber, PhoneNumberAdmin)
