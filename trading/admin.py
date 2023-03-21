@@ -1,12 +1,12 @@
 from django.contrib import admin
 
-from trading.models import SearchCoin, CreatePhoneNumber
+from trading.models import Coin, PhoneNumber
 
 
-class CreatePhoneNumberAdmin(admin.ModelAdmin):
+class PhoneNumberAdmin(admin.ModelAdmin):
     exclude = ('is_staff', 'is_superuser', 'is_admin', 'user_permissions', 'groups', 'last_login', 'password')
 
 
-admin.site.register(CreatePhoneNumber, CreatePhoneNumberAdmin)
+admin.site.register(PhoneNumber, PhoneNumberAdmin)
 
-admin.site.register(SearchCoin)
+admin.site.register(Coin)

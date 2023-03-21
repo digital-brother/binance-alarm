@@ -22,7 +22,7 @@ class PhoneNumberManager(BaseUserManager):
         return user
 
 
-class CreatePhoneNumber(AbstractBaseUser, PermissionsMixin):
+class PhoneNumber(AbstractBaseUser, PermissionsMixin):
     phone_number = PhoneNumberField(blank=True, unique=True, region='UA')
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -36,8 +36,8 @@ class CreatePhoneNumber(AbstractBaseUser, PermissionsMixin):
         return str(self.phone_number)
 
 
-class SearchCoin(models.Model):
-    phone_number = models.ForeignKey(CreatePhoneNumber, on_delete=models.CASCADE)
+class Coin(models.Model):
+    phone_number = models.ForeignKey(PhoneNumber, on_delete=models.CASCADE)
     short_name_coin = models.CharField(max_length=255)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
 
