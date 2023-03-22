@@ -3,19 +3,19 @@ from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
 
-class PhoneNumber(models.Model):
+class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    phone_number = PhoneNumberField(blank=True, unique=True, region='UA')
-    pause_service = models.BooleanField(default=False)
+    number = PhoneNumberField(blank=True, unique=True, region='UA')
+    enabled = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.phone_number)
+        return str(self.number)
 
 
 class Coin(models.Model):
-    phone_number = models.ForeignKey(PhoneNumber, on_delete=models.CASCADE)
-    short_name_coin = models.CharField(max_length=255)
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
+    coin_abbreviation = models.CharField(max_length=255)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return str(self.short_name_coin)
+        return str(self.coin_abbreviation)
