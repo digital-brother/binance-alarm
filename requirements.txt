@@ -1,0 +1,7 @@
+asgiref==3.6.0
+backports.zoneinfo==0.2.1
+Django==4.1.7
+django-phonenumber-field==7.0.2
+phonenumberslite==8.13.7
+sqlparse==0.4.3
+websocket-client==1.5.1
