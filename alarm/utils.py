@@ -12,42 +12,7 @@ current_prices = None
 previous_prices = None
 
 
-def analize_prices(current_prices, previous_prices):
-    threshold = 28150.20
-    if previous_prices and current_prices:
-        price_broke_threshold_down_top = current_prices <= threshold <= previous_prices
-        price_broke_threshold_top_down = previous_prices <= threshold <= current_prices
-
-        if price_broke_threshold_down_top or price_broke_threshold_top_down:
-            print('call user')
-        else:
-            print('continue search prices')
-
-
-# Websocket
-
-def get_value_s(data):
-    return data["s"]
-
-
-def on_open(ws, currency, interval):
-    print(f'Streaming K-line data for {currency} at {interval} intervals...')
-
-
-def on_message(ws, message, coin_name):
-    capture_exception(
-        f"Currency: {coin_name}, Current Price: {current_prices}, Previous Price: {previous_prices}")
-
-
-def on_error(ws, error):
-    print(error)
-
-
-def on_close(ws, close_status_code, close_msg):
-    print("###Close Streaming" + close_msg)
-
-
-def get_binance_price(currencies, intervals):
+def get_binance_price_and_analized(currencies, intervals):
     websocket.enableTrace(False)
     sockets = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
                zip(currencies, intervals)]
@@ -55,9 +20,7 @@ def get_binance_price(currencies, intervals):
     ws_list = []
     for socket in sockets:
         ws = websocket.create_connection(socket, sslopt={'cert_reqs': ssl.CERT_NONE})
-        ws.on_open = on_open
         ws.on_message = on_message
-        ws.on_error = on_error
         ws.on_close = on_close
         ws_list.append(ws)
 
@@ -88,12 +51,46 @@ def get_binance_price(currencies, intervals):
                 # Store the current and previous close prices in a global variable
                 current_prices = current_close_price
                 previous_prices = previous_close_price
-                coin_name = candlestick['s']
+                short_coin_name = candlestick['s']
                 analize_prices(current_prices, previous_prices)
-                on_message(ws, message, coin_name)
+                on_message(ws, message, short_coin_name)
     except KeyboardInterrupt:
         for i, ws in enumerate(ws_list):
             on_close(ws, '', close_msg=f' {currencies[i]}')
             ws.close()
     except Exception as e:
-        print(f'An error occurred: {e}')
+        capture_exception(e)
+
+
+def on_message(ws, message, short_coin_name):
+    print(
+        f"Currency: {short_coin_name}, Current Price: {current_prices}, Previous Price: {previous_prices}")
+
+
+def on_close(ws, close_status_code, close_msg):
+    print("Close Streaming" + close_msg)
+
+
+def analize_prices(current_prices, previous_prices):
+    coin_info = Coin.objects.all()
+    for coin in coin_info:
+        threshold = coin.threshold
+
+        if previous_prices and current_prices:
+            price_broke_threshold_down_top = current_prices >= threshold and current_prices >= previous_prices
+            price_broke_threshold_top_down = current_prices <= previous_prices and current_prices <= threshold
+
+            print('threshold', threshold)
+
+            if price_broke_threshold_down_top:
+                if previous_prices is not None:
+                    print('call user because threshold_down_top')
+                    # TODO: should_call_user()
+            else:
+                print('continue search prices threshold_down_top')
+            if price_broke_threshold_top_down:
+                if previous_prices is not None:
+                    print('call user because threshold_down_top')
+                    # TODO: should_call_user()
+            else:
+                print('continue search prices threshold_top_down')
