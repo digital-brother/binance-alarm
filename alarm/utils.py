@@ -3,7 +3,7 @@ import ssl
 
 import websocket
 from sentry_sdk import capture_exception
-
+from queue import Queue
 from alarm.models import Coin
 
 previous_close_price = None
@@ -73,24 +73,40 @@ def on_close(ws, close_status_code, close_msg):
 
 def analize_prices(current_prices, previous_prices):
     coin_info = Coin.objects.all()
+
+    # Set up queue
+    queue_for_price_broke_threshold_down_top = Queue()
+    queue_for_price_broke_threshold_top_down = Queue()
+
     for coin in coin_info:
         threshold = coin.threshold
+        coin_abbreviation = coin.coin_abbreviation
 
         if previous_prices and current_prices:
             price_broke_threshold_down_top = current_prices >= threshold and current_prices >= previous_prices
             price_broke_threshold_top_down = current_prices <= previous_prices and current_prices <= threshold
 
-            print('threshold', threshold)
-
             if price_broke_threshold_down_top:
                 if previous_prices is not None:
-                    print('call user because threshold_down_top')
-                    # TODO: should_call_user()
+                    data_threshold_down_top = [
+                        {'coin_abbreviation': coin_abbreviation, 'current_prices': current_prices,
+                         'previous_prices': previous_prices, 'threshold': float(threshold),
+                         'message': 'The call should be scheduled because threshold_down_top',
+                         'queue': 'Queue for threshold down top'}]
+
+                    queue_for_price_broke_threshold_down_top.put(data_threshold_down_top)
+                    print(queue_for_price_broke_threshold_down_top.get())
             else:
                 print('continue search prices threshold_down_top')
             if price_broke_threshold_top_down:
                 if previous_prices is not None:
-                    print('call user because threshold_down_top')
-                    # TODO: should_call_user()
+                    data_for_threshold_top_down = [
+                        {'coin_abbreviation': coin_abbreviation, 'current_prices': current_prices,
+                         'previous_prices': previous_prices,
+                         'threshold': float(threshold),
+                         'message': 'The call should be scheduled because threshold_top_down',
+                         'queue': 'Queue for threshold top down'}]
+                    queue_for_price_broke_threshold_top_down.put(data_for_threshold_top_down)
+                    print(queue_for_price_broke_threshold_top_down.get())
             else:
                 print('continue search prices threshold_top_down')
