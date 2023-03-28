@@ -3,110 +3,88 @@ import ssl
 
 import websocket
 from sentry_sdk import capture_exception
-from queue import Queue
-from alarm.models import Coin
-
-previous_close_price = None
-previous_candlestick = None
-current_prices = None
-previous_prices = None
+from alarm.models import Coin, Candle
 
 
 def get_binance_price_and_analized(currencies, intervals):
     websocket.enableTrace(False)
-    sockets = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
-               zip(currencies, intervals)]
+    sockets_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
+                    zip(currencies, intervals)]
 
-    ws_list = []
-    for socket in sockets:
-        ws = websocket.create_connection(socket, sslopt={'cert_reqs': ssl.CERT_NONE})
-        ws.on_message = on_message
-        ws.on_close = on_close
-        ws_list.append(ws)
+    socket_list = []
+    for socket_url in sockets_urls:
+        socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
+        socket.on_message = feedback_message_from_websocket
+        socket.on_close = close_streaming_message_from_websocket
+        socket_list.append(socket)
 
     try:
         while True:
-            for ws in ws_list:
+            for ws in socket_list:
                 message = ws.recv()
-                global previous_close_price
-                global previous_candlestick
-                global current_prices
-                global previous_prices
                 # Parse the JSON message
                 json_message = json.loads(message)
 
-                # Extract the candlestick data from the JSON message
-                candlestick = json_message['k']
+                # Extract the current candle data from the JSON message
+                current_candle = json_message['k']
 
-                # Extract the close price from the most recent candlestick
-                current_close_price = float(candlestick['c'])
+                # Extract the high price from the current candle
+                current_high_price = float(current_candle['h'])
 
-                # Update the previous close price, if a previous candlestick is available
-                if previous_candlestick is not None:
-                    previous_close_price = float(previous_candlestick['c'])
+                # Extract the high price from the current candle
+                current_low_price = float(current_candle['l'])
 
-                # Store the current candlestick data for use in the next iteration
-                previous_candlestick = candlestick
+                # Store the current candle data for use in the next iteration
+                candles = Candle.objects.all()
+                for candle in candles:
+                    coin = candle.coin
 
-                # Store the current and previous close prices in a global variable
-                current_prices = current_close_price
-                previous_prices = previous_close_price
-                short_coin_name = candlestick['s']
-                analize_prices(current_prices, previous_prices)
-                on_message(ws, message, short_coin_name)
+                    # Update or create the candle
+                    Candle.objects.update_or_create(
+                        coin=coin,
+                        defaults={
+                            'last_high_price': current_high_price,
+                            'last_low_price': current_low_price,
+                        },
+                    )
+
+                # Extract the current high price and current low price to analyze prices function
+                analyze_prices(current_high_price, current_low_price)
+                feedback_message_from_websocket(current_high_price, current_low_price)
     except KeyboardInterrupt:
-        for i, ws in enumerate(ws_list):
-            on_close(ws, '', close_msg=f' {currencies[i]}')
+        # handle the KeyboardInterrupt exception
+        for i, ws in enumerate(socket_list):
+            close_streaming_message_from_websocket(ws, '', close_msg=f' {currencies[i]}')
             ws.close()
-    except Exception as e:
-        capture_exception(e)
+    except ValueError as err:
+        # handle the ValueError exception
+        capture_exception(err)
+    except KeyError as err:
+        # handle the KeyError exception
+        capture_exception(err)
 
 
-def on_message(ws, message, short_coin_name):
+def feedback_message_from_websocket(current_high_price, current_low_price):
     print(
-        f"Currency: {short_coin_name}, Current Price: {current_prices}, Previous Price: {previous_prices}")
+        f"High Price: {current_high_price}, Low Price: {current_low_price}")
 
 
-def on_close(ws, close_status_code, close_msg):
+def close_streaming_message_from_websocket(ws, close_status_code, close_msg):
     print("Close Streaming" + close_msg)
 
 
-def analize_prices(current_prices, previous_prices):
-    coin_info = Coin.objects.all()
+def analyze_prices(high_price, low_price):
+    # Get the last high and low price, if a candle is available
+    last_candle = Candle.objects.last()
+    if last_candle:
+        last_high_price = last_candle.last_high_price
+        last_low_price = last_candle.last_low_price
 
-    # Set up queue
-    queue_for_price_broke_threshold_down_top = Queue()
-    queue_for_price_broke_threshold_top_down = Queue()
-
-    for coin in coin_info:
-        threshold = coin.threshold
-        coin_abbreviation = coin.coin_abbreviation
-
-        if previous_prices and current_prices:
-            price_broke_threshold_down_top = current_prices >= threshold and current_prices >= previous_prices
-            price_broke_threshold_top_down = current_prices <= previous_prices and current_prices <= threshold
-
-            if price_broke_threshold_down_top:
-                if previous_prices is not None:
-                    data_threshold_down_top = [
-                        {'coin_abbreviation': coin_abbreviation, 'current_prices': current_prices,
-                         'previous_prices': previous_prices, 'threshold': float(threshold),
-                         'message': 'The call should be scheduled because threshold_down_top',
-                         'queue': 'Queue for threshold down top'}]
-
-                    queue_for_price_broke_threshold_down_top.put(data_threshold_down_top)
-                    print(queue_for_price_broke_threshold_down_top.get())
-            else:
-                print('continue search prices threshold_down_top')
-            if price_broke_threshold_top_down:
-                if previous_prices is not None:
-                    data_for_threshold_top_down = [
-                        {'coin_abbreviation': coin_abbreviation, 'current_prices': current_prices,
-                         'previous_prices': previous_prices,
-                         'threshold': float(threshold),
-                         'message': 'The call should be scheduled because threshold_top_down',
-                         'queue': 'Queue for threshold top down'}]
-                    queue_for_price_broke_threshold_top_down.put(data_for_threshold_top_down)
-                    print(queue_for_price_broke_threshold_top_down.get())
-            else:
-                print('continue search prices threshold_top_down')
+        # Get the threshold for the coin
+        coin = Coin.objects.last()
+        if coin:
+            threshold = coin.threshold
+            # Check if the current price is within the threshold
+            if min(last_low_price, low_price) <= threshold <= max(last_high_price, high_price):
+                # TODO: Put call in queue
+                pass

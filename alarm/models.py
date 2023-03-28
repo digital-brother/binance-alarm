@@ -19,3 +19,9 @@ class Coin(models.Model):
 
     def __str__(self):
         return str(self.coin_abbreviation)
+
+
+class Candle(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    last_high_price = models.DecimalField(max_digits=10, decimal_places=2)
+    last_low_price = models.DecimalField(max_digits=10, decimal_places=2)
