@@ -1,90 +1,122 @@
+from alarm.models import Coin, Candle
+import websocket
 import json
 import ssl
 
-import websocket
-from sentry_sdk import capture_exception
-from alarm.models import Coin, Candle
 
-
-def get_binance_price_and_analized(currencies, intervals):
+def connect_binance_socket(currencies, intervals):
     websocket.enableTrace(False)
-    sockets_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
-                    zip(currencies, intervals)]
+    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
+                   zip(currencies, intervals)]
 
-    socket_list = []
-    for socket_url in sockets_urls:
+    sockets = []
+    for socket_url in socket_urls:
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
         socket.on_message = feedback_message_from_websocket
         socket.on_close = close_streaming_message_from_websocket
-        socket_list.append(socket)
+        sockets.append(socket)
 
+    return sockets
+
+
+def process_binance_messages(sockets):
     try:
         while True:
-            for ws in socket_list:
-                message = ws.recv()
-                # Parse the JSON message
-                json_message = json.loads(message)
-
-                # Extract the current candle data from the JSON message
-                current_candle = json_message['k']
-
-                # Extract the high price from the current candle
-                current_high_price = float(current_candle['h'])
-
-                # Extract the high price from the current candle
-                current_low_price = float(current_candle['l'])
-
-                # Store the current candle data for use in the next iteration
-                candles = Candle.objects.all()
-                for candle in candles:
-                    coin = candle.coin
-
-                    # Update or create the candle
-                    Candle.objects.update_or_create(
-                        coin=coin,
-                        defaults={
-                            'last_high_price': current_high_price,
-                            'last_low_price': current_low_price,
-                        },
-                    )
-
-                # Extract the current high price and current low price to analyze prices function
-                analyze_prices(current_high_price, current_low_price)
-                feedback_message_from_websocket(current_high_price, current_low_price)
+            for socket in sockets:
+                message = socket.recv()
+                handle_binance_message(message)
     except KeyboardInterrupt:
-        # handle the KeyboardInterrupt exception
-        for i, ws in enumerate(socket_list):
-            close_streaming_message_from_websocket(ws, '', close_msg=f' {currencies[i]}')
-            ws.close()
-    except ValueError as err:
-        # handle the ValueError exception
-        capture_exception(err)
-    except KeyError as err:
-        # handle the KeyError exception
-        capture_exception(err)
+        close_binance_sockets(sockets)
+    except (ValueError, KeyError) as err:
+        print(err)
 
 
-def feedback_message_from_websocket(current_high_price, current_low_price):
+def parse_binance_message(message):
+    """
+    Parse a Binance WebSocket message and return the relevant data.
+
+    :param message: The WebSocket message to parse.
+    :return: A tuple containing the current candle high price, current candle low price, and coin abbreviation.
+    """
+    json_message = json.loads(message)
+    current_candle = json_message['k']
+    current_candle_high_price = float(current_candle['h'])
+    current_candle_low_price = float(current_candle['l'])
+    coin_symbol = current_candle['s']
+    coin_abbreviation = coin_symbol.lower()
+
+    return current_candle_high_price, current_candle_low_price, coin_abbreviation
+
+
+def handle_binance_message(message):
+    """
+    Handle a Binance WebSocket message.
+
+    :param message: The WebSocket message to handle.
+    """
+    try:
+        # Parse the message to extract relevant data
+        current_candle_high_price, current_candle_low_price, coin_abbreviation = parse_binance_message(message)
+
+        # Get the coin from the database
+        coin = Coin.objects.filter(coin_abbreviation=coin_abbreviation).first()
+        if not coin:
+            # There is no coin with this abbreviation in the database
+            # TODO: Handle this case appropriately
+            return
+
+        # Update or create the candles for the coin
+        Candle.objects.update_or_create(
+            coin=coin,
+            defaults={
+                'last_high_price': current_candle_high_price,
+                'last_low_price': current_candle_low_price,
+            },
+        )
+
+        # Send prices to analyze and send feedback messages
+        threshold = coin.threshold
+        coin_last_candle = Candle.objects.filter(coin=coin).last()
+        if not coin_last_candle:
+            # There are no candles for this coin yet
+            # TODO: Handle this case appropriately
+            return
+        last_high_price = coin_last_candle.last_high_price
+        last_low_price = coin_last_candle.last_low_price
+
+        analyze_prices(current_candle_high_price, current_candle_low_price, coin_abbreviation, threshold,
+                       last_high_price,
+                       last_low_price)
+
+        feedback_message_from_websocket(coin_abbreviation, current_candle_high_price, threshold,
+                                        current_candle_low_price)
+
+    except (KeyError, ValueError, TypeError) as e:
+        # An error occurred while parsing the message
+        # TODO: Handle this case appropriately
+        pass
+
+
+def close_binance_sockets(sockets):
+    for i, socket in enumerate(sockets):
+        close_streaming_message_from_websocket(socket, '', close_msg=f'Close')
+        socket.close()
+
+
+def feedback_message_from_websocket(coin_abbreviation, current_candle_high_price, threshold, current_candle_low_price):
     print(
-        f"High Price: {current_high_price}, Low Price: {current_low_price}")
+        f"Coin Abbreviation: {coin_abbreviation}, High Price: {current_candle_high_price}, Threshold: {threshold}, "
+        f"Low Price: {current_candle_low_price}")
 
 
 def close_streaming_message_from_websocket(ws, close_status_code, close_msg):
     print("Close Streaming" + close_msg)
 
 
-def analyze_prices(high_price, low_price):
-    # Get the last high and low price, if a candle is available
-    last_candle = Candle.objects.last()
-    if last_candle:
-        last_high_price = last_candle.last_high_price
-        last_low_price = last_candle.last_low_price
-
-        # Get the threshold for the coin
-        coin = Coin.objects.last()
-        if coin:
-            threshold = coin.threshold
-            # Check if the current price is within the threshold
-            if min(last_low_price, low_price) <= threshold <= max(last_high_price, high_price):
-                # TODO: Put call in queue
-                pass
+def analyze_prices(current_candle_high_price, current_candle_low_price, last_candle_high_price, last_candle_low_price,
+                   coin_abbreviation, threshold):
+    # Check if the current price is within the threshold
+    if min(last_candle_low_price, current_candle_low_price) <= threshold <= max(last_candle_high_price,
+                                                                                current_candle_high_price):
+        # TODO: Put call in queue
+        pass
