@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 
 from alarm.models import Coin
-from alarm.utils import connect_binance_socket, process_binance_messages, close_binance_sockets
+from alarm.utils import connect_binance_socket, close_binance_sockets, check_if_call_needed, \
+    get_binance_data_and_update_coin_candle
 
 
 class Command(BaseCommand):
@@ -9,14 +10,42 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Define the list of currencies and intervals you want to stream
-        currencies = Coin.objects.values_list('coin_abbreviation', flat=True)
-        intervals = Coin.objects.values_list('interval', flat=True)
+        currencies = [coin.coin_abbreviation for coin in Coin.objects.all()]
+
+        intervals = ['1s'] * len(currencies)
 
         # Connect to Binance exchange
         sockets = connect_binance_socket(currencies, intervals)
 
         # Start processing messages
-        process_binance_messages(sockets)
+        try:
+            while True:
+                for socket in sockets:
+                    binance_data = socket.recv()
+
+                    current_candle_high_price, current_candle_low_price, threshold, last_high_price, last_low_price = get_binance_data_and_update_coin_candle(
+                        binance_data)
+
+                    check_if_call_needed(current_candle_high_price, current_candle_low_price, threshold,
+                                         last_high_price,
+                                         last_low_price)
+
+                    if check_if_call_needed:
+                        # TODO: make_call()
+                        pass
+
+                # Check if new coin names appear in the database
+                new_currencies = [coin.coin_abbreviation for coin in Coin.objects.all() if
+                                  coin.coin_abbreviation not in currencies]
+                if new_currencies:
+                    currencies += new_currencies
+                    new_sockets = connect_binance_socket(new_currencies, intervals)
+                    sockets.extend(new_sockets)
+
+        except KeyboardInterrupt:
+            close_binance_sockets(sockets)
+        except (ValueError, KeyError) as err:
+            print(err)
 
         # Close sockets when finished
         close_binance_sockets(sockets)
