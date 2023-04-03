@@ -17,9 +17,19 @@ class Coin(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     coin_abbreviation = models.CharField(max_length=255)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
+    interval = models.CharField(default='1s', max_length=8, editable=False)
 
     def __str__(self):
         return str(self.coin_abbreviation)
+
+    def update_or_create_candles(self, current_candle_high_price, current_candle_low_price):
+        Candle.objects.update_or_create(
+            coin=self,
+            defaults={
+                'last_high_price': current_candle_high_price,
+                'last_low_price': current_candle_low_price,
+            },
+        )
 
     def is_valid_coin_abbreviation(self):
         symbols = ["btcusdt",

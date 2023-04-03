@@ -4,16 +4,28 @@ import json
 import ssl
 
 
+# Called whenever a message is received from the WebSocket server
+def feedback_message_from_websocket(coin_abbreviation, current_candle_high_price, threshold,
+                                    current_candle_low_price):
+    print(
+        f"Coin Abbreviation: {coin_abbreviation}, High Price: {current_candle_high_price}, Threshold: {threshold}, "
+        f"Low Price: {current_candle_low_price}")
+
+
+# Called when the WebSocket connection is closed
+def close_binance_sockets(sockets):
+    for i, socket in enumerate(sockets):
+        socket.close()
+
+
 def connect_binance_socket(currencies, intervals):
     websocket.enableTrace(False)
     socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
                    zip(currencies, intervals)]
-
+    print(socket_urls)
     sockets = []
     for socket_url in socket_urls:
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
-        socket.on_message = feedback_message_from_websocket
-        socket.on_close = close_streaming_message_from_websocket
         sockets.append(socket)
 
     return sockets
@@ -66,28 +78,23 @@ def handle_binance_message(message):
             return
 
         # Update or create the candles for the coin
-        Candle.objects.update_or_create(
-            coin=coin,
-            defaults={
-                'last_high_price': current_candle_high_price,
-                'last_low_price': current_candle_low_price,
-            },
-        )
+        coin.update_or_create_candles(current_candle_high_price, current_candle_low_price)
 
-        # Send prices to analyze and send feedback messages
+        # Send prices to analyze
         threshold = coin.threshold
-        coin_last_candle = Candle.objects.filter(coin=coin).last()
-        if not coin_last_candle:
+        coin_property = Candle.objects.filter(coin=coin).last()
+        if not coin_property:
             # There are no candles for this coin yet
             # TODO: Handle this case appropriately
             return
-        last_high_price = coin_last_candle.last_high_price
-        last_low_price = coin_last_candle.last_low_price
+        last_high_price = coin_property.last_high_price
+        last_low_price = coin_property.last_low_price
 
-        analyze_prices(current_candle_high_price, current_candle_low_price, coin_abbreviation, threshold,
+        analyze_prices(coin_abbreviation, current_candle_high_price, current_candle_low_price, threshold,
                        last_high_price,
                        last_low_price)
 
+        # Send feedback messages about coin prices
         feedback_message_from_websocket(coin_abbreviation, current_candle_high_price, threshold,
                                         current_candle_low_price)
 
@@ -97,26 +104,14 @@ def handle_binance_message(message):
         pass
 
 
-def close_binance_sockets(sockets):
-    for i, socket in enumerate(sockets):
-        close_streaming_message_from_websocket(socket, '', close_msg=f'Close')
-        socket.close()
-
-
-def feedback_message_from_websocket(coin_abbreviation, current_candle_high_price, threshold, current_candle_low_price):
-    print(
-        f"Coin Abbreviation: {coin_abbreviation}, High Price: {current_candle_high_price}, Threshold: {threshold}, "
-        f"Low Price: {current_candle_low_price}")
-
-
-def close_streaming_message_from_websocket(ws, close_status_code, close_msg):
-    print("Close Streaming" + close_msg)
-
-
-def analyze_prices(current_candle_high_price, current_candle_low_price, last_candle_high_price, last_candle_low_price,
-                   coin_abbreviation, threshold):
+def analyze_prices(coin_abbreviation, current_candle_high_price, current_candle_low_price, last_candle_high_price,
+                   last_candle_low_price,
+                   threshold):
     # Check if the current price is within the threshold
     if min(last_candle_low_price, current_candle_low_price) <= threshold <= max(last_candle_high_price,
                                                                                 current_candle_high_price):
         # TODO: Put call in queue
-        pass
+
+        print(f'Call user about {coin_abbreviation}')
+    else:
+        print(f'Continue searching {coin_abbreviation}')

@@ -10,7 +10,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Define the list of currencies and intervals you want to stream
         currencies = Coin.objects.values_list('coin_abbreviation', flat=True)
-        intervals = ['1s']
+        intervals = Coin.objects.values_list('interval', flat=True)
 
         # Connect to Binance exchange
         sockets = connect_binance_socket(currencies, intervals)
