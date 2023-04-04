@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.helpers import get_valid_list_of_symbols
+from alarm.binance_utils import get_valid_list_of_symbols
 
 
 class Phone(models.Model):

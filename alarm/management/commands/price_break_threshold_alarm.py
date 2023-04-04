@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 
 from alarm.models import Coin
-from alarm.utils import connect_binance_socket, close_binance_sockets, check_if_call_needed, \
-    get_binance_data_and_update_coin_candle
+from alarm.binance_utils import connect_binance_socket, close_binance_sockets, get_binance_data_and_update_coin_candle
+from alarm.utils import check_if_call_needed
 
 
 class Command(BaseCommand):
