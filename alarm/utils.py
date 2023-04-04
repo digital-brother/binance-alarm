@@ -16,10 +16,12 @@ def close_binance_sockets(sockets):
         socket.close()
 
 
-def connect_binance_socket(currencies, intervals):
+def connect_binance_socket(currencies):
+    INTERVAL = '1s'
     websocket.enableTrace(False)
-    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency, interval in
-                   zip(currencies, intervals)]
+    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{INTERVAL}' for currency in
+                   currencies]
+
     sockets = []
     for socket_url in socket_urls:
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
@@ -61,13 +63,20 @@ def get_binance_data_and_update_coin_candle(data):
             # TODO: Handle this case appropriately
             return
 
-        last_high_price = coin_property.last_high_price
-        last_low_price = coin_property.last_low_price
+        last_candle_high_price = coin_property.last_high_price
+        last_candle_low_price = coin_property.last_low_price
 
         extract_data_from_socket(coin_abbreviation, current_candle_high_price, threshold,
                                  current_candle_low_price)
+        prices = {
+            'current_candle_high_price': current_candle_high_price,
+            'current_candle_low_price': current_candle_low_price,
+            'threshold': threshold,
+            'last_candle_high_price': last_candle_high_price,
+            'last_candle_low_price': last_candle_low_price
+        }
 
-        return current_candle_high_price, current_candle_low_price, threshold, last_high_price, last_low_price
+        return prices
 
     except (KeyError, ValueError, TypeError) as e:
         # An error occurred while parsing the message
@@ -75,11 +84,17 @@ def get_binance_data_and_update_coin_candle(data):
         pass
 
 
-def check_if_call_needed(current_candle_high_price, current_candle_low_price, last_candle_high_price,
-                         last_candle_low_price,
-                         threshold):
+def check_if_call_needed(prices):
+
+    threshold = prices['threshold']
+    last_candle_high_price = prices['last_candle_high_price']
+    current_candle_high_price = prices['current_candle_high_price']
+    last_candle_low_price = prices['last_candle_low_price']
+    current_candle_low_price = prices['current_candle_low_price']
     if min(last_candle_low_price, current_candle_low_price) <= threshold <= max(last_candle_high_price,
                                                                                 current_candle_high_price):
-        return True
+        result = True
     else:
-        return False
+        result = False
+
+    return result

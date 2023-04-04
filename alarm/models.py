@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
+from alarm.helpers import get_valid_list_of_symbols
+
 
 class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -15,8 +17,8 @@ class Phone(models.Model):
 
 
 class Coin(models.Model):
-    phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
-    coin_abbreviation = models.CharField(max_length=255)
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, default=None)
+    coin_abbreviation = models.CharField(max_length=255, default=None)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
@@ -31,18 +33,8 @@ class Coin(models.Model):
             },
         )
 
-    def get_valid_list_of_symbols(self):
-        BINANCE_API_URL = "https://api.binance.com/api/v3/exchangeInfo"
-        response = requests.get(BINANCE_API_URL)
-
-        if response.status_code == 200:
-            valid_list_of_symbols = [symbol['symbol'].lower() for symbol in response.json()['symbols']]
-            return valid_list_of_symbols
-        else:
-            return []
-
     def is_valid_coin_abbreviation(self):
-        valid_list_of_symbols = self.get_valid_list_of_symbols()
+        valid_list_of_symbols = get_valid_list_of_symbols()
         return self.coin_abbreviation in valid_list_of_symbols
 
     def clean(self):

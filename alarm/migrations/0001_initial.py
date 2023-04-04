@@ -7,20 +7,14 @@ import phonenumber_field.modelfields
 
 
 class Migration(migrations.Migration):
-
-    initial = True
-
-    dependencies = [
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-    ]
-
     operations = [
         migrations.CreateModel(
-            name='Phone',
+            name='PhoneNumber',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('number', phonenumber_field.modelfields.PhoneNumberField(blank=True, max_length=128, region='UA', unique=True)),
-                ('enabled', models.BooleanField(default=False)),
+                ('phone_number',
+                 phonenumber_field.modelfields.PhoneNumberField(blank=True, max_length=128, region='UA', unique=True)),
+                ('pause_service', models.BooleanField(default=False)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),
@@ -28,18 +22,11 @@ class Migration(migrations.Migration):
             name='Coin',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('coin_abbreviation', models.CharField(max_length=255)),
+                ('short_name_coin', models.CharField(max_length=255)),
                 ('threshold', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('phone', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='alarm.phone')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='Candle',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('last_high_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('last_low_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('coin', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='alarm.coin')),
+                (
+                    'phone_number',
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='alarm.phonenumber')),
             ],
         ),
     ]

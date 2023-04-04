@@ -12,10 +12,8 @@ class Command(BaseCommand):
         # Define the list of currencies and intervals you want to stream
         currencies = [coin.coin_abbreviation for coin in Coin.objects.all()]
 
-        intervals = ['1s'] * len(currencies)
-
         # Connect to Binance exchange
-        sockets = connect_binance_socket(currencies, intervals)
+        sockets = connect_binance_socket(currencies)
 
         # Start processing messages
         try:
@@ -23,12 +21,10 @@ class Command(BaseCommand):
                 for socket in sockets:
                     binance_data = socket.recv()
 
-                    current_candle_high_price, current_candle_low_price, threshold, last_high_price, last_low_price = get_binance_data_and_update_coin_candle(
+                    prices = get_binance_data_and_update_coin_candle(
                         binance_data)
 
-                    check_if_call_needed(current_candle_high_price, current_candle_low_price, threshold,
-                                         last_high_price,
-                                         last_low_price)
+                    check_if_call_needed(prices)
 
                     if check_if_call_needed:
                         # TODO: make_call()
@@ -39,7 +35,7 @@ class Command(BaseCommand):
                                   coin.coin_abbreviation not in currencies]
                 if new_currencies:
                     currencies += new_currencies
-                    new_sockets = connect_binance_socket(new_currencies, intervals)
+                    new_sockets = connect_binance_socket(new_currencies)
                     sockets.extend(new_sockets)
 
         except KeyboardInterrupt:
