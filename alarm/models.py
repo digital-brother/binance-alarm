@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_valid_list_of_symbols
+from alarm.binance_utils import get_binance_valid_list_of_symbols
 
 
 class Phone(models.Model):
@@ -34,7 +34,7 @@ class Coin(models.Model):
         )
 
     def is_valid_coin_abbreviation(self):
-        valid_list_of_symbols = get_valid_list_of_symbols()
+        valid_list_of_symbols = get_binance_valid_list_of_symbols()
         return self.coin_abbreviation in valid_list_of_symbols
 
     def clean(self):

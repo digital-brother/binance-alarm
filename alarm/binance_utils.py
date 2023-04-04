@@ -1,7 +1,18 @@
-from alarm.models import Coin, Candle
+import requests
 import websocket
 import json
 import ssl
+
+
+def get_binance_valid_list_of_symbols():
+    BINANCE_API_URL = "https://api.binance.com/api/v3/exchangeInfo"
+    response = requests.get(BINANCE_API_URL)
+
+    if response.status_code == 200:
+        valid_list_of_symbols = [symbol['symbol'].lower() for symbol in response.json()['symbols']]
+        return valid_list_of_symbols
+    else:
+        return []
 
 
 def extract_binance_data_from_socket(coin_abbreviation, current_candle_high_price, threshold,
@@ -39,46 +50,3 @@ def parse_binance_data(data):
     coin_abbreviation = coin_symbol.lower()
 
     return current_candle_high_price, current_candle_low_price, coin_abbreviation
-
-
-def get_binance_data_and_update_coin_candle(data):
-    try:
-        # Parse the message to extract relevant data
-        current_candle_high_price, current_candle_low_price, coin_abbreviation = parse_binance_data(data)
-
-        coin = Coin.objects.filter(coin_abbreviation=coin_abbreviation).first()
-
-        if not coin:
-            # There is no coin with this abbreviation in the database
-            # TODO: Handle this case appropriately
-            return
-
-        coin.update_or_create_candles(current_candle_high_price, current_candle_low_price)
-
-        threshold = coin.threshold
-        coin_property = Candle.objects.filter(coin=coin).last()
-
-        if not coin_property:
-            # There are no candles for this coin yet
-            # TODO: Handle this case appropriately
-            return
-
-        last_candle_high_price = coin_property.last_high_price
-        last_candle_low_price = coin_property.last_low_price
-
-        extract_binance_data_from_socket(coin_abbreviation, current_candle_high_price, threshold,
-                                         current_candle_low_price)
-        prices = {
-            'current_candle_high_price': current_candle_high_price,
-            'current_candle_low_price': current_candle_low_price,
-            'threshold': threshold,
-            'last_candle_high_price': last_candle_high_price,
-            'last_candle_low_price': last_candle_low_price
-        }
-
-        return prices
-
-    except (KeyError, ValueError, TypeError) as e:
-        # An error occurred while parsing the message
-        # TODO: Handle this case appropriately
-        pass
