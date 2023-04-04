@@ -34,15 +34,9 @@ def get_binance_data_and_update_coin_candle(data):
         coin.update_or_create_candles(current_candle_high_price, current_candle_low_price)
 
         threshold = coin.threshold
-        coin_property = Candle.objects.filter(coin=coin).last()
 
-        if not coin_property:
-            # There are no candles for this coin yet
-            # TODO: Handle this case appropriately
-            return
-
-        last_candle_high_price = coin_property.last_high_price
-        last_candle_low_price = coin_property.last_low_price
+        last_candle_high_price = coin.last_high_price
+        last_candle_low_price = coin.last_low_price
 
         extract_binance_data_from_socket(coin_abbreviation, current_candle_high_price, threshold,
                                          current_candle_low_price)
