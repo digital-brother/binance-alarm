@@ -16,8 +16,8 @@ class Phone(models.Model):
 
 
 class Coin(models.Model):
-    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, default=None)
-    abbreviation = models.CharField(max_length=255, default=None)
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
+    abbreviation = models.CharField(max_length=255)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
@@ -57,8 +57,8 @@ class Coin(models.Model):
 
     def clean(self):
         super().clean()
-        valid_list_of_symbols = get_binance_list_of_coin_names()
-        if self.abbreviation not in valid_list_of_symbols:
+        list_of_binance_coins_abbreviations = get_binance_list_of_coin_names()
+        if self.abbreviation not in list_of_binance_coins_abbreviations:
             raise ValidationError(
                 f"{self.abbreviation} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
 

@@ -9,8 +9,8 @@ def get_binance_list_of_coin_names():
     response = requests.get(BINANCE_API_URL)
 
     if response.status_code == 200:
-        valid_list_of_symbols = [symbol['symbol'].lower() for symbol in response.json()['symbols']]
-        return valid_list_of_symbols
+        valid_list_of_coin_names = [symbol['symbol'].lower() for symbol in response.json()['symbols']]
+        return valid_list_of_coin_names
     else:
         return []
 
@@ -41,6 +41,10 @@ def connect_binance_socket(currencies):
 
 
 def parse_binance_data(data):
+    """
+        Parses the data received from Binance WebSocket API and returns the high price,
+        low price, and lowercase abbreviation of the coin for the current candle.
+    """
     json_message = json.loads(data)
     candle = json_message['k']
     candle_high_price = float(candle['h'])
