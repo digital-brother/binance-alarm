@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='coin',
-            name='coin_abbreviation',
+            name='abbreviation',
             field=models.CharField(default=None, max_length=255),
         ),
         migrations.DeleteModel(

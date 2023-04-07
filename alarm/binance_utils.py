@@ -4,7 +4,7 @@ import json
 import ssl
 
 
-def get_binance_valid_list_of_symbols():
+def get_binance_list_of_coin_names():
     BINANCE_API_URL = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(BINANCE_API_URL)
 
@@ -15,10 +15,10 @@ def get_binance_valid_list_of_symbols():
         return []
 
 
-def extract_binance_data_from_socket(coin_abbreviation, current_candle_high_price, threshold,
-                                     current_candle_low_price):
+def print_binance_candle_data(abbreviation, current_candle_high_price, threshold,
+                              current_candle_low_price):
     print(
-        f"Coin Abbreviation: {coin_abbreviation}, High Price: {current_candle_high_price}, Threshold: {threshold}, "
+        f"Coin Abbreviation: {abbreviation}, High Price: {current_candle_high_price}, Threshold: {threshold}, "
         f"Low Price: {current_candle_low_price}")
 
 
@@ -32,7 +32,6 @@ def connect_binance_socket(currencies):
     websocket.enableTrace(False)
     socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{INTERVAL}' for currency in
                    currencies]
-
     sockets = []
     for socket_url in socket_urls:
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
@@ -43,10 +42,10 @@ def connect_binance_socket(currencies):
 
 def parse_binance_data(data):
     json_message = json.loads(data)
-    current_candle = json_message['k']
-    current_candle_high_price = float(current_candle['h'])
-    current_candle_low_price = float(current_candle['l'])
-    coin_symbol = current_candle['s']
-    coin_abbreviation = coin_symbol.lower()
+    candle = json_message['k']
+    candle_high_price = float(candle['h'])
+    candle_low_price = float(candle['l'])
+    coin_abbreviation = candle['s']
+    coin_abbreviation_lower_case = coin_abbreviation.lower()
 
-    return current_candle_high_price, current_candle_low_price, coin_abbreviation
+    return candle_high_price, candle_low_price, coin_abbreviation_lower_case

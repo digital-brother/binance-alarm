@@ -1,10 +1,9 @@
-import requests
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_binance_valid_list_of_symbols
+from alarm.binance_utils import get_binance_list_of_coin_names
 
 
 class Phone(models.Model):
@@ -18,16 +17,16 @@ class Phone(models.Model):
 
 class Coin(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, default=None)
-    coin_abbreviation = models.CharField(max_length=255, default=None)
+    abbreviation = models.CharField(max_length=255, default=None)
     threshold = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return str(self.coin_abbreviation)
+        return str(self.abbreviation)
 
     @property
     def get_last_candle(self):
         """Returns the last candle object associated with this coin."""
-        return self.candle.last()
+        return self.candle.filter(coin=self).last()
 
     @property
     def last_high_price(self):
@@ -56,15 +55,12 @@ class Coin(models.Model):
             },
         )
 
-    def is_valid_coin_abbreviation(self):
-        valid_list_of_symbols = get_binance_valid_list_of_symbols()
-        return self.coin_abbreviation in valid_list_of_symbols
-
     def clean(self):
         super().clean()
-        if not self.is_valid_coin_abbreviation():
+        valid_list_of_symbols = get_binance_list_of_coin_names()
+        if self.abbreviation not in valid_list_of_symbols:
             raise ValidationError(
-                f"{self.coin_abbreviation} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
+                f"{self.abbreviation} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
 
 
 class Candle(models.Model):

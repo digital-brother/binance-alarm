@@ -20,7 +20,7 @@ class AlarmCandle(models.Model):
 
 class AlarmCoin(models.Model):
     threshold = models.DecimalField(max_digits=10, decimal_places=5)  # max_digits and decimal_places have been guessed, as this database handles decimal fields as float
-    coin_abbreviation = models.CharField(max_length=255)
+    abbreviation = models.CharField(max_length=255)
     phone = models.ForeignKey('AlarmPhone', models.DO_NOTHING)
 
     class Meta:

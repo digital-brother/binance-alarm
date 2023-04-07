@@ -1,8 +1,9 @@
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from alarm.models import Coin
 from alarm.binance_utils import connect_binance_socket, close_binance_sockets
-from alarm.utils import check_if_call_needed, get_binance_data_and_update_coin_candle
+from alarm.utils import if_threshold_breaks, update_coin_candle_from_binance_data
 
 
 class Command(BaseCommand):
@@ -10,7 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Define the list of currencies and intervals you want to stream
-        currencies = [coin.coin_abbreviation for coin in Coin.objects.all()]
+        currencies = [coin.abbreviation for coin in Coin.objects.all()]
 
         # Connect to Binance exchange
         sockets = connect_binance_socket(currencies)
@@ -21,22 +22,22 @@ class Command(BaseCommand):
                 for socket in sockets:
                     binance_data = socket.recv()
 
-                    prices = get_binance_data_and_update_coin_candle(
+                    coin_prices_data = update_coin_candle_from_binance_data(
                         binance_data)
 
-                    check_if_call_needed(prices)
+                    threshold_breaks = if_threshold_breaks(coin_prices_data)
 
-                    if check_if_call_needed:
+                    if threshold_breaks:
                         # TODO: make_call()
                         pass
 
                 # Check if new coin names appear in the database
-                new_currencies = [coin.coin_abbreviation for coin in Coin.objects.all() if
-                                  coin.coin_abbreviation not in currencies]
-                if new_currencies:
-                    currencies += new_currencies
-                    new_sockets = connect_binance_socket(new_currencies)
-                    sockets.extend(new_sockets)
+                    new_currencies = [coin.abbreviation for coin in Coin.objects.all() if coin.abbreviation not in currencies]
+                    if new_currencies:
+                        print(f"New coins added: {', '.join(new_currencies)}")
+                        currencies += new_currencies
+                        new_sockets = connect_binance_socket(new_currencies)
+                        sockets.extend(new_sockets)
 
         except KeyboardInterrupt:
             close_binance_sockets(sockets)
