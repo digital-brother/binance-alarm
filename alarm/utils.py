@@ -39,7 +39,7 @@ def update_coin_candle_from_binance_data(data):
         pass
 
 
-def if_threshold_breaks(coin_prices_data):
+def threshold_is_broken(coin_prices_data):
     if coin_prices_data:
         threshold = coin_prices_data['threshold']
         last_candle_high_price = coin_prices_data['last_candle_high_price']

@@ -3,7 +3,7 @@ from django.db import transaction
 
 from alarm.models import Threshold
 from alarm.binance_utils import connect_binance_sockets, close_binance_sockets
-from alarm.utils import if_threshold_breaks, update_coin_candle_from_binance_data
+from alarm.utils import threshold_is_broken, update_coin_candle_from_binance_data
 
 
 class Command(BaseCommand):
@@ -25,19 +25,17 @@ class Command(BaseCommand):
                     coin_prices_data = update_coin_candle_from_binance_data(
                         binance_data)
 
-                    is_threshold_breaks = if_threshold_breaks(coin_prices_data)
-
-                    if is_threshold_breaks:
+                    if threshold_is_broken(coin_prices_data):
                         # TODO: make_call()
                         print('need call')
                         pass
 
                 # Check if new coin names appear in the database
-                    new_currencies = [coin.trade_pair for coin in Threshold.objects.all() if coin.trade_pair not in trade_pairs]
-                    if new_currencies:
-                        print(f"New coins added: {', '.join(new_currencies)}")
-                        trade_pairs += new_currencies
-                        new_sockets = connect_binance_sockets(new_currencies)
+                    new_trade_pairs = [coin.trade_pair for coin in Threshold.objects.all() if coin.trade_pair not in trade_pairs]
+                    if new_trade_pairs:
+                        print(f"New trade pairs added: {', '.join(new_trade_pairs)}")
+                        trade_pairs += new_trade_pairs
+                        new_sockets = connect_binance_sockets(new_trade_pairs)
                         sockets.extend(new_sockets)
 
         except KeyboardInterrupt:
