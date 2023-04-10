@@ -4,9 +4,9 @@ import json
 import ssl
 
 
-def get_binance_list_of_coin_names():
-    BINANCE_API_URL = "https://api.binance.com/api/v3/exchangeInfo"
-    response = requests.get(BINANCE_API_URL)
+def get_binance_list_of_trade_pairs():
+    binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
+    response = requests.get(binance_exchange_info_url)
 
     if response.status_code == 200:
         valid_list_of_coin_names = [symbol['symbol'].lower() for symbol in response.json()['symbols']]
@@ -27,10 +27,10 @@ def close_binance_sockets(sockets):
         socket.close()
 
 
-def connect_binance_socket(currencies):
-    INTERVAL = '1s'
+def connect_binance_sockets(currencies):
+    interval = '1s'
     websocket.enableTrace(False)
-    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{INTERVAL}' for currency in
+    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency in
                    currencies]
     sockets = []
     for socket_url in socket_urls:
@@ -43,7 +43,7 @@ def connect_binance_socket(currencies):
 def parse_binance_data(data):
     """
         Parses the data received from Binance WebSocket API and returns the high price,
-        low price, and lowercase abbreviation of the coin for the current candle.
+        low price, and lowercase trade_pair of the coin for the current candle.
     """
     json_message = json.loads(data)
     candle = json_message['k']

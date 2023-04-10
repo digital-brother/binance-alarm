@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from alarm.models import Coin
-from alarm.binance_utils import connect_binance_socket, close_binance_sockets
+from alarm.models import Threshold
+from alarm.binance_utils import connect_binance_sockets, close_binance_sockets
 from alarm.utils import if_threshold_breaks, update_coin_candle_from_binance_data
 
 
@@ -11,10 +11,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Define the list of currencies and intervals you want to stream
-        currencies = [coin.abbreviation for coin in Coin.objects.all()]
+        trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()]
 
         # Connect to Binance exchange
-        sockets = connect_binance_socket(currencies)
+        sockets = connect_binance_sockets(trade_pairs)
 
         # Start processing messages
         try:
@@ -33,11 +33,11 @@ class Command(BaseCommand):
                         pass
 
                 # Check if new coin names appear in the database
-                    new_currencies = [coin.abbreviation for coin in Coin.objects.all() if coin.abbreviation not in currencies]
+                    new_currencies = [coin.trade_pair for coin in Threshold.objects.all() if coin.trade_pair not in trade_pairs]
                     if new_currencies:
                         print(f"New coins added: {', '.join(new_currencies)}")
-                        currencies += new_currencies
-                        new_sockets = connect_binance_socket(new_currencies)
+                        trade_pairs += new_currencies
+                        new_sockets = connect_binance_sockets(new_currencies)
                         sockets.extend(new_sockets)
 
         except KeyboardInterrupt:

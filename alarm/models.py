@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_binance_list_of_coin_names
+from alarm.binance_utils import get_binance_list_of_trade_pairs
 
 
 class Phone(models.Model):
@@ -15,13 +15,13 @@ class Phone(models.Model):
         return str(self.number)
 
 
-class Coin(models.Model):
+class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
-    abbreviation = models.CharField(max_length=255)
-    threshold = models.DecimalField(max_digits=10, decimal_places=2)
+    trade_pair = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return str(self.abbreviation)
+        return str(self.trade_pair)
 
     @property
     def get_last_candle(self):
@@ -57,14 +57,14 @@ class Coin(models.Model):
 
     def clean(self):
         super().clean()
-        list_of_binance_coins_abbreviations = get_binance_list_of_coin_names()
-        if self.abbreviation not in list_of_binance_coins_abbreviations:
+        list_of_binance_coins_abbreviations = get_binance_list_of_trade_pairs()
+        if self.trade_pair not in list_of_binance_coins_abbreviations:
             raise ValidationError(
-                f"{self.abbreviation} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
+                f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
 
 
 class Candle(models.Model):
-    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name='candle')
+    coin = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='candle')
     high_price = models.DecimalField(max_digits=10, decimal_places=2)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
 

@@ -1,10 +1,10 @@
 from django.contrib import admin
 
-from .models import Phone, Coin, Candle
+from .models import Phone, Threshold, Candle
 
 
 class CoinInline(admin.TabularInline):
-    model = Coin
+    model = Threshold
     extra = 1
 
 
@@ -14,6 +14,6 @@ class PhoneAdmin(admin.ModelAdmin):
 
 admin.site.register(Phone, PhoneAdmin)
 
-admin.site.register(Coin)
+admin.site.register(Threshold)
 
 admin.site.register(Candle)

@@ -1,5 +1,5 @@
 from alarm.binance_utils import parse_binance_data, print_binance_candle_data
-from alarm.models import Coin
+from alarm.models import Threshold
 
 
 def update_coin_candle_from_binance_data(data):
@@ -7,19 +7,19 @@ def update_coin_candle_from_binance_data(data):
         # Parse the message to extract relevant data
         current_candle_high_price, current_candle_low_price, abbreviation = parse_binance_data(data)
 
-        coin = Coin.objects.filter(abbreviation=abbreviation).first()
+        threshold = Threshold.objects.filter(abbreviation=abbreviation).first()
 
-        if not coin:
-            # There is no coin with this abbreviation in the database
+        if not threshold:
+            # There is no coin with this trade_pair in the database
             # TODO: Show error with Sentry
             return
 
-        coin.update_or_create_candles(current_candle_high_price, current_candle_low_price)
+        threshold.update_or_create_candles(current_candle_high_price, current_candle_low_price)
 
-        threshold = coin.threshold
+        threshold = threshold.price
 
-        last_candle_high_price = coin.last_high_price
-        last_candle_low_price = coin.last_low_price
+        last_candle_high_price = threshold.last_high_price
+        last_candle_low_price = threshold.last_low_price
 
         print_binance_candle_data(abbreviation, current_candle_high_price, threshold,
                                   current_candle_low_price)
