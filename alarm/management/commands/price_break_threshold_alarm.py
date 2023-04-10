@@ -31,7 +31,8 @@ class Command(BaseCommand):
                         pass
 
                 # Check if new coin names appear in the database
-                    new_trade_pairs = [coin.trade_pair for coin in Threshold.objects.all() if coin.trade_pair not in trade_pairs]
+                    new_trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()
+                                       if threshold.trade_pair not in trade_pairs]
                     if new_trade_pairs:
                         print(f"New trade pairs added: {', '.join(new_trade_pairs)}")
                         trade_pairs += new_trade_pairs

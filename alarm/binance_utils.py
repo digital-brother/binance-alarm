@@ -40,16 +40,16 @@ def connect_binance_sockets(currencies):
     return sockets
 
 
-def parse_binance_data(data):
+def parse_kindle_data_from_binance_websocket_update(data):
     """
         Parses the data received from Binance WebSocket API and returns the high price,
-        low price, and lowercase trade_pair of the coin for the current candle.
+        low price, and trade_pair of the coin for the current candle.
     """
     json_message = json.loads(data)
     candle = json_message['k']
     candle_high_price = float(candle['h'])
     candle_low_price = float(candle['l'])
-    coin_abbreviation = candle['s']
-    coin_abbreviation_lower_case = coin_abbreviation.lower()
+    trade_pair = candle['s']
+    trade_pair_lower_case = trade_pair.lower()
 
-    return candle_high_price, candle_low_price, coin_abbreviation_lower_case
+    return candle_high_price, candle_low_price, trade_pair_lower_case

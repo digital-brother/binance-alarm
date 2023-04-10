@@ -1,13 +1,14 @@
-from alarm.binance_utils import parse_binance_data, print_binance_candle_data
+from alarm.binance_utils import parse_kindle_data_from_binance_websocket_update, print_binance_candle_data
 from alarm.models import Threshold
 
 
 def update_coin_candle_from_binance_data(data):
     try:
         # Parse the message to extract relevant data
-        current_candle_high_price, current_candle_low_price, abbreviation = parse_binance_data(data)
+        current_candle_high_price, current_candle_low_price, trade_pair = \
+            parse_kindle_data_from_binance_websocket_update(data)
 
-        threshold = Threshold.objects.filter(abbreviation=abbreviation).first()
+        threshold = Threshold.objects.filter(abbreviation=trade_pair).first()
 
         if not threshold:
             # There is no coin with this trade_pair in the database
@@ -21,7 +22,7 @@ def update_coin_candle_from_binance_data(data):
         last_candle_high_price = threshold.last_high_price
         last_candle_low_price = threshold.last_low_price
 
-        print_binance_candle_data(abbreviation, current_candle_high_price, threshold,
+        print_binance_candle_data(trade_pair, current_candle_high_price, threshold,
                                   current_candle_low_price)
         coin_prices_data = {
             'current_candle_high_price': current_candle_high_price,
