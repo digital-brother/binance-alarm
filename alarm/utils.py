@@ -20,4 +20,5 @@ def any_of_key_pair_thresholds_is_broken(trade_pair, current_candle):
         if threshold_broken:
             return True
 
+    print(f"For {trade_pair} none of thresholds ({', '.join([str(threshold.price) for threshold in thresholds])}) were broken")
     return False

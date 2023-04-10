@@ -55,21 +55,23 @@ class Threshold(models.Model):
 
 
 class Candle(models.Model):
-    coin = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='candle')
     # TODO: Possibly extract trade_pair model
     trade_pair = models.CharField(max_length=255)
+    modified = models.DateTimeField(auto_now=True)
     high_price = models.DecimalField(max_digits=10, decimal_places=2)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     @classmethod
     def update_or_create(cls, trade_pair, current_candle_high_price, current_candle_low_price):
-        return cls.objects.update_or_create(
+        candle = cls.objects.update_or_create(
             trade_pair=trade_pair,
             defaults={
                 'high_price': current_candle_high_price,
                 'low_price': current_candle_low_price,
             },
         )
+        print(f"Candle updated: {candle}")
+        return candle[0]
 
     def __str__(self):
-        return str(self.coin)
+        return f"{self.trade_pair}: {self.low_price} - {self.high_price} {self.modified}"

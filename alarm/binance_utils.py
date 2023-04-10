@@ -37,10 +37,11 @@ def connect_binance_sockets(currencies):
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
         sockets.append(socket)
 
+    print(f"Sockets connected: {', '.join(socket_urls)}.")
     return sockets
 
 
-def parse_kindle_data_from_binance_websocket_update(data):
+def parse_kindle_data(data):
     """
         Parses the data received from Binance WebSocket API and returns the high price,
         low price, and trade_pair of the coin for the current candle.
@@ -52,4 +53,4 @@ def parse_kindle_data_from_binance_websocket_update(data):
     trade_pair = candle['s']
     trade_pair_lower_case = trade_pair.lower()
 
-    return candle_high_price, candle_low_price, trade_pair
+    return candle_high_price, candle_low_price, trade_pair_lower_case

@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from alarm.binance_utils import connect_binance_sockets, close_binance_sockets, \
-    parse_kindle_data_from_binance_websocket_update
+    parse_kindle_data, print_binance_candle_data
 from alarm.models import Threshold, Candle
 from alarm.utils import any_of_key_pair_thresholds_is_broken
 
@@ -16,6 +16,7 @@ class Command(BaseCommand):
         # Connect to Binance exchange
         sockets = connect_binance_sockets(trade_pairs)
 
+
         # Start processing messages
         try:
             while True:
@@ -23,7 +24,7 @@ class Command(BaseCommand):
                     binance_data = socket.recv()
 
                     current_candle_high_price, current_candle_low_price, trade_pair = \
-                        parse_kindle_data_from_binance_websocket_update(binance_data)
+                        parse_kindle_data(binance_data)
 
                     current_candle = Candle.update_or_create(trade_pair, current_candle_high_price,
                                                              current_candle_low_price)
