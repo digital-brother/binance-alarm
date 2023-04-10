@@ -11,7 +11,7 @@ def threshold_is_broken(threshold_price, previous_candle, current_candle):
     return False
 
 
-def any_threshold_is_broken(trade_pair, current_candle):
+def any_of_key_pair_thresholds_is_broken(trade_pair, current_candle):
     previous_candle = Candle.objects.get(trade_pair=trade_pair)
     thresholds = Threshold.objects.filter(trade_pair=trade_pair)
 

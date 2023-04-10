@@ -46,15 +46,6 @@ class Threshold(models.Model):
         else:
             return None
 
-    def update_or_create_candles(self, current_candle_high_price, current_candle_low_price):
-        Candle.objects.update_or_create(
-            coin=self,
-            defaults={
-                'high_price': current_candle_high_price,
-                'low_price': current_candle_low_price,
-            },
-        )
-
     def clean(self):
         super().clean()
         list_of_binance_coins_abbreviations = get_binance_list_of_trade_pairs()
@@ -65,8 +56,20 @@ class Threshold(models.Model):
 
 class Candle(models.Model):
     coin = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='candle')
+    # TODO: Possibly extract trade_pair model
+    trade_pair = models.CharField(max_length=255)
     high_price = models.DecimalField(max_digits=10, decimal_places=2)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    @classmethod
+    def update_or_create(cls, trade_pair, current_candle_high_price, current_candle_low_price):
+        return cls.objects.update_or_create(
+            trade_pair=trade_pair,
+            defaults={
+                'high_price': current_candle_high_price,
+                'low_price': current_candle_low_price,
+            },
+        )
 
     def __str__(self):
         return str(self.coin)

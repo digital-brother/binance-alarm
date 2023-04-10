@@ -52,4 +52,4 @@ def parse_kindle_data_from_binance_websocket_update(data):
     trade_pair = candle['s']
     trade_pair_lower_case = trade_pair.lower()
 
-    return candle_high_price, candle_low_price, trade_pair_lower_case
+    return candle_high_price, candle_low_price, trade_pair
