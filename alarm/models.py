@@ -25,7 +25,7 @@ class Threshold(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return str(self.trade_pair)
+        return str(self.price)
 
     def clean(self):
         super().clean()
@@ -57,17 +57,13 @@ class Candle(models.Model):
     @transaction.atomic
     def save_as_recent(cls, trade_pair, high_price, low_price):
         """Also deletes old candles, which we do not need anymore"""
-        logger.debug(f"Saving as recent candle for {trade_pair}, {low_price}, {high_price}")
-        logger.debug(f"Candles for {trade_pair} before delete: {Candle.objects.filter(trade_pair=trade_pair)}")
         candle_to_keep = cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
 
         if candle_to_keep:
             cls.objects.filter(trade_pair=trade_pair).exclude(pk=candle_to_keep.pk).delete()
-        logger.debug(f"Candles for {trade_pair} after delete: {Candle.objects.filter(trade_pair=trade_pair)}")
 
         candle = cls.objects.create(trade_pair=trade_pair, high_price=high_price, low_price=low_price)
-        logger.debug(f"Candles for {trade_pair} after create: {Candle.objects.filter(trade_pair=trade_pair)}")
         return candle
 
     def __str__(self):
-        return f"{self.trade_pair}:{self.low_price}-{self.high_price}({self.modified.time()})"
+        return f"{self.low_price}-{self.high_price}"

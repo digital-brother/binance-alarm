@@ -20,17 +20,13 @@ def any_of_key_pair_thresholds_is_broken(trade_pair):
     last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
     penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
 
-    if not last_candle or not penultimate_candle:
-        logger.info(f"For {trade_pair} not enough candles data present "
-                    f"(last candle {last_candle}, penultimate candle {penultimate_candle}).")
-        return False
-
     for threshold in thresholds:
         threshold_broken = threshold_is_broken(threshold.price, last_candle, penultimate_candle)
+        logger.info(f"{str(trade_pair).upper()}; "
+                    f"candles: {penultimate_candle}, {last_candle}; "
+                    f"threshold: {threshold}; "
+                    f"threshold broken: {threshold_broken}")
         if threshold_broken:
-            logger.info(f"For trade pair {trade_pair} threshold {threshold.price} was broken.")
             return True
 
-    threshold_prices_str = ', '.join([str(threshold.price) for threshold in thresholds])
-    logger.info(f"For {trade_pair} none of thresholds ({threshold_prices_str}) were broken.")
     return False
