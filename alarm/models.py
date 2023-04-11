@@ -44,17 +44,22 @@ class Candle(models.Model):
 
     @classmethod
     def last_for_trade_pair(cls, trade_pair):
-        return cls.objects.filter(trade_pair=trade_pair).order_by('modified')[-1]
+        return cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
 
     @classmethod
     def penultimate_for_trade_pair(cls, trade_pair):
+        candles = cls.objects.filter(trade_pair=trade_pair).order_by('modified')
+        if candles.count() < 2:
+            return None
         return cls.objects.filter(trade_pair=trade_pair).order_by('modified')[-2]
 
     @classmethod
     def save_as_recent(cls, trade_pair, high_price, low_price):
-        """Deletes old candles, which we do not need anymore"""
-        candles_to_delete = cls.objects.filter(trade_pair=trade_pair).order_by('modified')[1:]
-        candles_to_delete.delete()
+        """Also deletes old candles, which we do not need anymore"""
+        candle_to_keep = cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
+
+        if candle_to_keep:
+            cls.objects.exclude(pk__in=candle_to_keep.pk).delete()
 
         candle = cls.objects.create(trade_pair=trade_pair, high_price=high_price, low_price=low_price)
         return candle
