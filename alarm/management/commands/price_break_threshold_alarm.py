@@ -11,16 +11,13 @@ logger = logging.getLogger(f'django.{__name__}')
 
 
 class Command(BaseCommand):
-    help = 'Starts streaming Binance market data'
+    help = 'Gets updates for all trade pairs, analyses if thresholds were broken, ' \
+           'makes a call to a user in case of need'
 
     def handle(self, *args, **options):
-        # Define the list of currencies and intervals you want to stream
         trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()]
-
-        # Connect to Binance exchange
         sockets = connect_binance_sockets(trade_pairs)
 
-        # Start processing messages
         try:
             while True:
                 for socket in sockets:
@@ -48,5 +45,4 @@ class Command(BaseCommand):
         except (ValueError, KeyError) as err:
             logger.error(err)
 
-        # Close sockets when finished
         close_binance_sockets(sockets)
