@@ -27,35 +27,12 @@ class Threshold(models.Model):
     def __str__(self):
         return str(self.trade_pair)
 
-    @property
-    def get_last_candle(self):
-        """Returns the last candle object associated with this coin."""
-        return self.candle.filter(coin=self).last()
-
-    @property
-    def last_high_price(self):
-        """Returns the high price of the last candle object associated with this coin."""
-        last_candle = self.get_last_candle
-        if last_candle:
-            return last_candle.high_price
-        else:
-            return None
-
-    @property
-    def last_low_price(self):
-        """Returns the low price of the last candle object associated with this coin."""
-        last_candle = self.get_last_candle
-        if last_candle:
-            return last_candle.low_price
-        else:
-            return None
-
     def clean(self):
         super().clean()
-        list_of_binance_coins_abbreviations = get_binance_trade_pairs()
-        if self.trade_pair not in list_of_binance_coins_abbreviations:
+        valid_trade_pair = get_binance_trade_pairs()
+        if self.trade_pair not in valid_trade_pair:
             raise ValidationError(
-                f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
+                f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
 
 
 class Candle(models.Model):
