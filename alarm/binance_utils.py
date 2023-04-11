@@ -4,7 +4,7 @@ import json
 import ssl
 
 
-def get_binance_list_of_trade_pairs():
+def get_binance_trade_pairs_list():
     binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(binance_exchange_info_url)
 
@@ -13,13 +13,6 @@ def get_binance_list_of_trade_pairs():
         return valid_list_of_coin_names
     else:
         return []
-
-
-def print_binance_candle_data(abbreviation, current_candle_high_price, threshold,
-                              current_candle_low_price):
-    print(
-        f"Coin Abbreviation: {abbreviation}, High Price: {current_candle_high_price}, Threshold: {threshold}, "
-        f"Low Price: {current_candle_low_price}")
 
 
 def close_binance_sockets(sockets):

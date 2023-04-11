@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from alarm.binance_utils import connect_binance_sockets, close_binance_sockets, \
-    parse_kindle_data, print_binance_candle_data
+    parse_kindle_data
 from alarm.models import Threshold, Candle
 from alarm.utils import any_of_key_pair_thresholds_is_broken
 
