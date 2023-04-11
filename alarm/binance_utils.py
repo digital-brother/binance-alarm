@@ -1,7 +1,10 @@
-import requests
-import websocket
 import json
+import logging
+import requests
 import ssl
+import websocket
+
+logger = logging.getLogger(f'django.{__name__}')
 
 
 def get_binance_trade_pairs():
@@ -29,7 +32,7 @@ def connect_binance_sockets(trade_pairs):
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
         sockets.append(socket)
 
-    print(f"Sockets connected: {', '.join(socket_urls)}.")
+    logger.info(f"Sockets connected: {', '.join(socket_urls)}.")
     return sockets
 
 

@@ -1,9 +1,13 @@
+import logging
+
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
 from alarm.binance_utils import get_binance_trade_pairs
+
+logger = logging.getLogger(f'django.{__name__}')
 
 
 class Phone(models.Model):
@@ -70,7 +74,7 @@ class Candle(models.Model):
                 'low_price': current_candle_low_price,
             },
         )
-        print(f"Candle updated: {candle}")
+        logger.info(f"Candle updated: {candle}")
         return candle[0]
 
     def __str__(self):

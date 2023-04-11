@@ -1,4 +1,8 @@
+import logging
+
 from alarm.models import Threshold, Candle
+
+logger = logging.getLogger(f'django.{__name__}')
 
 
 def threshold_is_broken(threshold_price, previous_candle, current_candle):
@@ -20,5 +24,6 @@ def any_of_key_pair_thresholds_is_broken(trade_pair, current_candle):
         if threshold_broken:
             return True
 
-    print(f"For {trade_pair} none of thresholds ({', '.join([str(threshold.price) for threshold in thresholds])}) were broken")
+    threshold_prices_str = ', '.join([str(threshold.price) for threshold in thresholds])
+    logger.info(f"For {trade_pair} none of thresholds ({threshold_prices_str}) were broken")
     return False
