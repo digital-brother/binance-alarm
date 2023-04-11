@@ -7,7 +7,7 @@ from alarm.binance_utils import connect_binance_sockets, close_binance_sockets, 
 from alarm.models import Threshold, Candle
 from alarm.utils import any_of_key_pair_thresholds_is_broken
 
-logger = logging.getLogger(f'django.{__name__}')
+logger = logging.getLogger(f'{__name__}')
 
 
 class Command(BaseCommand):

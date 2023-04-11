@@ -4,7 +4,7 @@ import requests
 import ssl
 import websocket
 
-logger = logging.getLogger(f'django.{__name__}')
+logger = logging.getLogger(f'{__name__}')
 
 
 def get_binance_trade_pairs():

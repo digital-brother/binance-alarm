@@ -2,7 +2,7 @@ import logging
 
 from alarm.models import Threshold, Candle
 
-logger = logging.getLogger(f'django.{__name__}')
+logger = logging.getLogger(f'{__name__}')
 
 
 def threshold_is_broken(threshold_price, previous_candle, current_candle):
