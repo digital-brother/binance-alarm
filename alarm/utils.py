@@ -15,15 +15,17 @@ def threshold_is_broken(threshold_price, previous_candle, current_candle):
     return False
 
 
-def any_of_key_pair_thresholds_is_broken(trade_pair, current_candle):
-    previous_candle = Candle.objects.get(trade_pair=trade_pair)
+def any_of_key_pair_thresholds_is_broken(trade_pair):
     thresholds = Threshold.objects.filter(trade_pair=trade_pair)
+    last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
+    penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
 
     for threshold in thresholds:
-        threshold_broken = threshold_is_broken(threshold.price, previous_candle, current_candle)
+        threshold_broken = threshold_is_broken(threshold.price, last_candle, penultimate_candle)
         if threshold_broken:
+            logger.info(f"For trade pair {trade_pair} threshold {threshold.price} was broken.")
             return True
 
     threshold_prices_str = ', '.join([str(threshold.price) for threshold in thresholds])
-    logger.info(f"For {trade_pair} none of thresholds ({threshold_prices_str}) were broken")
+    logger.info(f"For {trade_pair} none of thresholds ({threshold_prices_str}) were broken.")
     return False

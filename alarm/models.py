@@ -66,6 +66,14 @@ class Candle(models.Model):
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     @classmethod
+    def last_for_trade_pair(cls, trade_pair):
+        return cls.objects.filter(trade_pair=trade_pair).order_by('modified')[-1]
+
+    @classmethod
+    def penultimate_for_trade_pair(cls, trade_pair):
+        return cls.objects.filter(trade_pair=trade_pair).order_by('modified')[-2]
+
+    @classmethod
     def save_as_recent(cls, trade_pair, high_price, low_price):
         """Deletes old candles, which we do not need anymore"""
         candles_to_delete = cls.objects.filter(trade_pair=trade_pair).order_by('modified')[1:]
