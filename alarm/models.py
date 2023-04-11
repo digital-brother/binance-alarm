@@ -66,6 +66,15 @@ class Candle(models.Model):
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     @classmethod
+    def save_as_recent(cls, trade_pair, high_price, low_price):
+        """Deletes old candles, which we do not need anymore"""
+        candles_to_delete = cls.objects.filter(trade_pair=trade_pair).order_by('modified')[1:]
+        candles_to_delete.delete()
+
+        candle = cls.objects.create(trade_pair=trade_pair, high_price=high_price, low_price=low_price)
+        return candle
+
+    @classmethod
     def update_or_create(cls, trade_pair, current_candle_high_price, current_candle_low_price):
         candle = cls.objects.update_or_create(
             trade_pair=trade_pair,

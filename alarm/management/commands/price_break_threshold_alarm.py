@@ -3,10 +3,9 @@ import logging
 from django.core.management.base import BaseCommand
 
 from alarm.binance_utils import connect_binance_sockets, close_binance_sockets, \
-    parse_kindle_data
+    parse_candle_from_websocket_update
 from alarm.models import Threshold, Candle
 from alarm.utils import any_of_key_pair_thresholds_is_broken
-
 
 logger = logging.getLogger(f'django.{__name__}')
 
@@ -21,20 +20,16 @@ class Command(BaseCommand):
         # Connect to Binance exchange
         sockets = connect_binance_sockets(trade_pairs)
 
-
         # Start processing messages
         try:
             while True:
                 for socket in sockets:
                     binance_data = socket.recv()
 
-                    current_candle_high_price, current_candle_low_price, trade_pair = \
-                        parse_kindle_data(binance_data)
+                    high_price, low_price, trade_pair = parse_candle_from_websocket_update(binance_data)
+                    Candle.save_as_recent(trade_pair, high_price, low_price)
 
-                    current_candle = Candle.update_or_create(trade_pair, current_candle_high_price,
-                                                             current_candle_low_price)
-
-                    if any_of_key_pair_thresholds_is_broken(trade_pair, current_candle):
+                    if any_of_key_pair_thresholds_is_broken(trade_pair):
                         # TODO: make_call()
                         logger.info('need call')
                         pass
