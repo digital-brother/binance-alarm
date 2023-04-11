@@ -4,7 +4,7 @@ import json
 import ssl
 
 
-def get_binance_trade_pairs_list():
+def get_binance_trade_pairs():
     binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(binance_exchange_info_url)
 
@@ -20,11 +20,10 @@ def close_binance_sockets(sockets):
         socket.close()
 
 
-def connect_binance_sockets(currencies):
+def connect_binance_sockets(trade_pairs):
     interval = '1s'
     websocket.enableTrace(False)
-    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency in
-                   currencies]
+    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency in trade_pairs]
     sockets = []
     for socket_url in socket_urls:
         socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})

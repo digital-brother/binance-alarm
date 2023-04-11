@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_binance_trade_pairs_list
+from alarm.binance_utils import get_binance_trade_pairs
 
 
 class Phone(models.Model):
@@ -48,7 +48,7 @@ class Threshold(models.Model):
 
     def clean(self):
         super().clean()
-        list_of_binance_coins_abbreviations = get_binance_trade_pairs_list()
+        list_of_binance_coins_abbreviations = get_binance_trade_pairs()
         if self.trade_pair not in list_of_binance_coins_abbreviations:
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc")
