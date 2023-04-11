@@ -74,17 +74,5 @@ class Candle(models.Model):
         candle = cls.objects.create(trade_pair=trade_pair, high_price=high_price, low_price=low_price)
         return candle
 
-    @classmethod
-    def update_or_create(cls, trade_pair, current_candle_high_price, current_candle_low_price):
-        candle = cls.objects.update_or_create(
-            trade_pair=trade_pair,
-            defaults={
-                'high_price': current_candle_high_price,
-                'low_price': current_candle_low_price,
-            },
-        )
-        logger.info(f"Candle updated: {candle}")
-        return candle[0]
-
     def __str__(self):
         return f"{self.trade_pair}: {self.low_price} - {self.high_price} {self.modified}"
