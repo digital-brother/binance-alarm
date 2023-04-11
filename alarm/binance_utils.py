@@ -36,7 +36,7 @@ def connect_binance_sockets(trade_pairs):
     return sockets
 
 
-def parse_kindle_data(data):
+def parse_candle_from_websocket_update(data):
     """
         Parses the data received from Binance WebSocket API and returns the high price,
         low price, and trade_pair of the coin for the current candle.
