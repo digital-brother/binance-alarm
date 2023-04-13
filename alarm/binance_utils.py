@@ -30,7 +30,7 @@ def connect_binance_socket(trade_pairs):
 
     socket_url = f'wss://stream.binance.com:9443/ws/{trade_pairs_and_intervals_for_socket_url}'
     socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
-    logger.info(f"Sockets connected: {socket_url}.")
+    logger.info(f"Socket connected: {socket_url}.")
 
     return socket
 
