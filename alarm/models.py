@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
@@ -67,3 +68,8 @@ class Candle(models.Model):
 
     def __str__(self):
         return f"{self.trade_pair}: {self.low_price}-{self.high_price}"
+
+
+class ThresholdBrake(models.Model):
+    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE)
+    happened_at = models.DateTimeField(auto_now_add=True)

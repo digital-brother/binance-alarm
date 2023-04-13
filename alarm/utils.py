@@ -1,6 +1,6 @@
 import logging
 
-from alarm.models import Threshold, Candle
+from alarm.models import Threshold, Candle, ThresholdBrake
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -30,6 +30,7 @@ def any_of_trade_pair_thresholds_is_broken(trade_pair):
                     f"threshold: {threshold}; "
                     f"threshold broken: {threshold_broken}")
         if threshold_broken:
+            ThresholdBrake.objects.create(threshold=threshold)
             return True
 
     return False
