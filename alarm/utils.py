@@ -20,6 +20,9 @@ def any_of_trade_pair_thresholds_is_broken(trade_pair):
     last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
     penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
 
+    if last_candle is None and penultimate_candle is None:
+        return False
+
     for threshold in thresholds:
         threshold_broken = threshold_is_broken(threshold.price, last_candle, penultimate_candle)
         logger.info(f"{str(trade_pair).upper()}; "

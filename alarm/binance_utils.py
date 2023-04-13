@@ -18,22 +18,21 @@ def get_binance_trade_pairs():
         return []
 
 
-def close_binance_sockets(sockets):
-    for i, socket in enumerate(sockets):
-        socket.close()
+def close_binance_socket(socket):
+    socket.close()
 
 
-def connect_binance_sockets(trade_pairs):
+def connect_binance_socket(trade_pairs):
     interval = '1s'
     websocket.enableTrace(False)
-    socket_urls = [f'wss://stream.binance.com:9443/ws/{currency}@kline_{interval}' for currency in trade_pairs]
-    sockets = []
-    for socket_url in socket_urls:
-        socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
-        sockets.append(socket)
+    trade_pairs_and_intervals_for_socket_url = '/'.join(
+        [f'{trade_pair}@kline_{interval}' for trade_pair in trade_pairs])
 
-    logger.info(f"Sockets connected: {', '.join(socket_urls)}.")
-    return sockets
+    socket_url = f'wss://stream.binance.com:9443/ws/{trade_pairs_and_intervals_for_socket_url}'
+    socket = websocket.create_connection(socket_url, sslopt={'cert_reqs': ssl.CERT_NONE})
+    logger.info(f"Socket connected: {socket_url}.")
+
+    return socket
 
 
 def parse_candle_from_websocket_update(data):
