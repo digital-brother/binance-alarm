@@ -55,7 +55,7 @@ class Candle(models.Model):
 
     @classmethod
     @transaction.atomic
-    def update_or_create_prices(cls, trade_pair, high_price, low_price):
+    def refresh_candle_data(cls, trade_pair, high_price, low_price):
         """Also deletes old candles, which we do not need anymore"""
         candle_to_keep = cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
 

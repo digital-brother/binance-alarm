@@ -23,7 +23,7 @@ class Command(BaseCommand):
                 binance_data = socket.recv()
 
                 high_price, low_price, trade_pair = parse_candle_from_websocket_update(binance_data)
-                Candle.update_or_create_prices(trade_pair, high_price, low_price)
+                Candle.refresh_candle_data(trade_pair, high_price, low_price)
 
                 if any_of_trade_pair_thresholds_is_broken(trade_pair):
                     # TODO: make_call()
