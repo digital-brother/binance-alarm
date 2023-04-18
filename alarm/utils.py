@@ -2,6 +2,13 @@ import logging
 
 from alarm.models import Threshold, Candle, ThresholdBrake
 
+import time
+from twilio.rest import Client
+
+from binance_alarm.settings import ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER_TWILLIO, USER_PHONE_NUMBER
+
+client = Client(ACCOUNT_SID, AUTH_TOKEN)
+
 logger = logging.getLogger(f'{__name__}')
 
 
@@ -34,3 +41,32 @@ def any_of_trade_pair_thresholds_is_broken(trade_pair):
             return True
 
     return False
+
+
+def check_call_status(call, message):
+    if call.status == 'completed':
+        # Sleep for 15 minutes
+        time.sleep(900)
+    elif call.status == 'busy' or call.status == 'failed':
+        # Sleep for 1 minute and create a new call
+        time.sleep(60)
+        call = client.calls.create(
+            twiml=message,
+            to=USER_PHONE_NUMBER,
+            from_=PHONE_NUMBER_TWILLIO
+        )
+        check_call_status(call)
+    else:
+        # Try to call the user every minute for 15 minutes
+        for i in range(15):
+            time.sleep(60)
+            call = client.calls.create(
+                twiml=message,
+                to=USER_PHONE_NUMBER,
+                from_=PHONE_NUMBER_TWILLIO
+            )
+            if call.status == 'completed':
+                break
+            elif i == 14:
+                # Maximum attempts reached, exit the loop
+                break

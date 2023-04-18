@@ -1,5 +1,4 @@
 import logging
-import time
 
 from twilio.rest import Client
 
@@ -8,13 +7,12 @@ from django.core.management.base import BaseCommand
 from alarm.binance_utils import connect_binance_socket, close_binance_socket, \
     parse_candle_from_websocket_update
 from alarm.models import Threshold, Candle, ThresholdBrake
-from alarm.utils import any_of_trade_pair_thresholds_is_broken
+from alarm.utils import any_of_trade_pair_thresholds_is_broken, check_call_status
+from binance_alarm.settings import ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER_TWILLIO, USER_PHONE_NUMBER
 
 logger = logging.getLogger(f'{__name__}')
 
-account_sid = "ACc57a61651083bfb9f4d388b817bd6cd8"
-auth_token = "8968fa9cbcee990c3d642f7eb9ab1871"
-client = Client(account_sid, auth_token)
+client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
 
 class Command(BaseCommand):
@@ -48,38 +46,11 @@ class Command(BaseCommand):
 
                         call = client.calls.create(
                             twiml=message,
-                            to='+380933330898',
-                            from_='+15075858335'
+                            to=USER_PHONE_NUMBER,
+                            from_=PHONE_NUMBER_TWILLIO
                         )
 
-                        # Check the call status
-                        if call.status == 'completed':
-                            # Sleep for 15 minutes
-                            time.sleep(900)
-                        elif call.status == 'busy' or call.status == 'failed':
-                            # Sleep for 1 minute and create a new call
-                            time.sleep(60)
-                            call = client.calls.create(
-                                twiml=message,
-                                to='+380933330898',
-                                from_='+15075858335'
-                            )
-                        else:
-                            # Try to call the user every minute for 15 minutes
-                            for i in range(15):
-                                time.sleep(60)
-                                call = call = client.calls.create(
-                                    twiml=message,
-                                    to='+380933330898',
-                                    from_='+15075858335'
-                                )
-                                if call.status == 'completed':
-                                    break
-                                elif i == 14:
-                                    # Maximum attempts reached, exit the loop
-                                    break
-
-                    logger.info('need call')
+                        check_call_status(call, message)
 
                 # Check if new coin names appear in the database
                 new_trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()
