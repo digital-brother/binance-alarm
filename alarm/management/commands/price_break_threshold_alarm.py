@@ -12,7 +12,7 @@ from binance_alarm.settings import ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER_TWILLIO
 
 logger = logging.getLogger(f'{__name__}')
 
-client = Client(ACCOUNT_SID, AUTH_TOKEN)
+twilio_client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
 
 class Command(BaseCommand):
@@ -31,20 +31,21 @@ class Command(BaseCommand):
                 Candle.refresh_candle_data(trade_pair, high_price, low_price)
 
                 if any_of_trade_pair_thresholds_is_broken(trade_pair):
-                    threshold_brakes = ThresholdBrake.objects.all()
+                    threshold_brakes = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair)
 
                     for threshold_brake in threshold_brakes:
                         threshold = threshold_brake.threshold
                         trade_pair = threshold.trade_pair
-                        price = ', '.join([f'{threshold_brake.price}$' for threshold_brake in
-                                           Threshold.objects.filter(trade_pair=trade_pair)])
-                        candle = Candle.objects.filter(trade_pair=trade_pair).order_by(
+                        threshold_prices = Threshold.objects.filter(trade_pair=trade_pair).values_list('price',
+                                                                                                       flat=True)
+                        formatted_prices = ', '.join([f'{price}$' for price in threshold_prices])
+                        last_candle = Candle.objects.filter(trade_pair=trade_pair).order_by(
                             '-modified').last()  # Get the latest candle
                         # Check if the candle exists before accessing its high price
-                        high_price = candle.high_price if candle else None
-                        message = f"<Response><Say>Attention! Trade pair {trade_pair} has broken thresholds {price} and current price is {high_price}$</Say></Response> "
+                        high_price = last_candle.high_price if last_candle else None
+                        message = f"<Response><Say>Attention! Trade pair {trade_pair} has broken thresholds {formatted_prices} and current price is {high_price}$</Say></Response> "
 
-                        call = client.calls.create(
+                        call = twilio_client.calls.create(
                             twiml=message,
                             to=USER_PHONE_NUMBER,
                             from_=PHONE_NUMBER_TWILLIO
