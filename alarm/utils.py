@@ -1,8 +1,8 @@
 import logging
 
+from alarm.binance_utils import formatting_trade_pair_for_user_message, connect_binance_socket
 from alarm.models import Threshold, Candle, ThresholdBrake
 
-import time
 from twilio.rest import Client
 
 from binance_alarm.settings import ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER_TWILLIO, USER_PHONE_NUMBER
@@ -13,7 +13,7 @@ logger = logging.getLogger(f'{__name__}')
 
 
 def threshold_is_broken(threshold_price, previous_candle, current_candle):
-    if previous_candle:
+    if previous_candle and current_candle:
         return (
                 min(previous_candle.low_price, current_candle.low_price) <=
                 threshold_price <=
@@ -43,27 +43,20 @@ def any_of_trade_pair_thresholds_is_broken(trade_pair):
     return False
 
 
-def check_call_status(call, message):
-    if call.status == 'completed':
-        # Sleep for 15 minutes
-        time.sleep(900)
-    elif call.status == 'busy' or call.status == 'failed':
-        # Sleep for 1 minute and create a new call
-        time.sleep(60)
-        call = twilio_client.calls.create(
-            twiml=message,
-            to=USER_PHONE_NUMBER,
-            from_=PHONE_NUMBER_TWILLIO
-        )
-        check_call_status(call, message)
-    else:
-        # Try to call the user every minute for 15 minutes
-        for i in range(15):
-            time.sleep(60)
-            call = twilio_client.calls.create(
-                twiml=message,
-                to=USER_PHONE_NUMBER,
-                from_=PHONE_NUMBER_TWILLIO
-            )
-            if call.status == 'completed':
-                break
+def make_call(trade_pair):
+    threshold_prices = Threshold.objects.filter(trade_pair=trade_pair).values_list('price', flat=True)
+
+    formatted_prices_for_user_message = ', '.join([f'{price}$' for price in threshold_prices])
+    formatted_trade_pair_for_user_message = formatting_trade_pair_for_user_message(trade_pair)
+
+    last_candle = Candle.objects.filter(trade_pair=trade_pair).order_by('-modified').last()
+
+    last_candle_high_price = last_candle.high_price if last_candle else None
+    message = f"<Response><Say>Attention! Trade pair {formatted_trade_pair_for_user_message} has broken thresholds {formatted_prices_for_user_message} and current price is {last_candle_high_price}$</Say></Response>"
+    call = twilio_client.calls.create(
+        twiml=message,
+        to=USER_PHONE_NUMBER,
+        from_=PHONE_NUMBER_TWILLIO
+    )
+
+    # TODO: processing_call_status(call, message)

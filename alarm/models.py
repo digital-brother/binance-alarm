@@ -1,4 +1,3 @@
-import datetime
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
@@ -6,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_binance_trade_pairs
+from alarm.binance_utils import get_binance_valid_list_of_coin_names
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -26,12 +25,12 @@ class Threshold(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.trade_pair}: {self.price}"
+        return f"{self.price}"
 
     def clean(self):
         super().clean()
-        valid_trade_pair = get_binance_trade_pairs()
-        if self.trade_pair not in valid_trade_pair:
+        valid_list_of_coin_names = get_binance_valid_list_of_coin_names()
+        if self.trade_pair not in valid_list_of_coin_names:
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
 
@@ -67,9 +66,11 @@ class Candle(models.Model):
         return candle
 
     def __str__(self):
-        return f"{self.trade_pair}: {self.low_price}-{self.high_price}"
+        return f"{self.low_price}-{self.high_price}"
 
 
 class ThresholdBrake(models.Model):
     threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE)
-    happened_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.threshold}"
