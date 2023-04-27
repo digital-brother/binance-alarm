@@ -14,7 +14,8 @@ class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     number = PhoneNumberField(blank=True, unique=True, region='UA')
     enabled = models.BooleanField(default=False)
-    # TODO: message field
+    message = models.TextField(default=None)
+
     def __str__(self):
         return str(self.number)
 
@@ -23,9 +24,6 @@ class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     trade_pair = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    #TODO: method threshold_is_broken
-
 
     def __str__(self):
         return f"{self.price}"
@@ -36,6 +34,15 @@ class Threshold(models.Model):
         if self.trade_pair not in valid_list_of_trade_pairs:
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
+
+    def is_broken(self, previous_candle, current_candle):
+        if previous_candle and current_candle:
+            return (
+                    min(previous_candle.low_price, current_candle.low_price) <=
+                    self.price <=
+                    max(previous_candle.high_price, current_candle.high_price)
+            )
+        return False
 
 
 class Candle(models.Model):
@@ -74,7 +81,6 @@ class Candle(models.Model):
 
 class ThresholdBrake(models.Model):
     threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE)
-    message = models.TextField()
     happened_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -1,11 +1,10 @@
 import logging
 import time
-
-from alarm.binance_utils import format_trade_pair_for_user_message
-from alarm.models import Threshold, Candle, ThresholdBrake
+from alarm.binance_utils import format_trade_pair_for_message
 
 from twilio.rest import Client
 
+from alarm.models import Threshold, Candle, ThresholdBrake
 from binance_alarm.settings import ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER_TWILLIO, USER_PHONE_NUMBER
 
 twilio_client = Client(ACCOUNT_SID, AUTH_TOKEN)
@@ -13,53 +12,49 @@ twilio_client = Client(ACCOUNT_SID, AUTH_TOKEN)
 logger = logging.getLogger(f'{__name__}')
 
 
-def threshold_is_broken(threshold_price, previous_candle, current_candle):
-    if previous_candle and current_candle:
-        return (
-                min(previous_candle.low_price, current_candle.low_price) <=
-                threshold_price <=
-                max(previous_candle.high_price, current_candle.high_price)
-        )
-    return False
-
-
 def any_of_trade_pair_thresholds_is_broken(trade_pair):
     thresholds = Threshold.objects.filter(trade_pair=trade_pair)
     last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
     penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
-    message = create_message_about_threshold_break(trade_pair)
+
     if last_candle is None and penultimate_candle is None:
         return False
 
-    for threshold in Threshold.objects.filter(trade_pair=trade_pair):
-        if ThresholdBrake.objects.filter(threshold=threshold).exists():
-            continue
-
     for threshold in thresholds:
-        threshold_broken = threshold_is_broken(threshold.price, last_candle, penultimate_candle)
+        threshold_broken = threshold.is_broken(last_candle, penultimate_candle)
         logger.info(f"{str(trade_pair).upper()}; "
                     f"candles: {penultimate_candle}, {last_candle}; "
                     f"threshold: {threshold}; "
                     f"threshold broken: {threshold_broken}")
         if threshold_broken:
-            try:
-                latest_threshold_brake = ThresholdBrake.objects.filter(message=message).latest('happened_at')
-                if latest_threshold_brake:
-                    return False
-            except ThresholdBrake.DoesNotExist:
-                pass
-
-            ThresholdBrake.objects.create(threshold=threshold, message=message)
+            # create_threshold_brake(trade_pair)
             return True
 
     return False
+
+
+def create_threshold_brake(trade_pair):
+    thresholds = Threshold.objects.filter(trade_pair=trade_pair)
+    message = create_message_about_threshold_break(trade_pair)
+    for threshold in Threshold.objects.filter(trade_pair=trade_pair):
+        if ThresholdBrake.objects.filter(threshold=threshold).exists():
+            continue
+    for threshold in thresholds:
+        try:
+            latest_threshold_brake = ThresholdBrake.objects.filter(message=message).latest('happened_at')
+            if latest_threshold_brake:
+                return False
+        except ThresholdBrake.DoesNotExist:
+            pass
+
+        ThresholdBrake.objects.create(threshold=threshold, message=message)
 
 
 def create_message_about_threshold_break(trade_pair):
     threshold_prices = Threshold.objects.filter(trade_pair=trade_pair).values_list('price', flat=True)
 
     threshold_prices_str = ', '.join([f'{price}$' for price in threshold_prices])
-    trade_pair_str = format_trade_pair_for_user_message(trade_pair)
+    trade_pair_str = format_trade_pair_for_message(trade_pair)
 
     last_candle = Candle.objects.filter(trade_pair=trade_pair).order_by('-modified').last()
 

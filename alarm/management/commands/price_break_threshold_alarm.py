@@ -1,12 +1,11 @@
 import logging
-from time import timezone
 
 from django.core.management.base import BaseCommand
 
 from alarm.binance_utils import connect_binance_socket, close_binance_socket, \
     parse_candle_from_websocket_update
-from alarm.models import Threshold, Candle, ThresholdBrake
-from alarm.utils import any_of_trade_pair_thresholds_is_broken, create_message_about_threshold_break, make_call
+from alarm.models import Threshold, Candle
+from alarm.utils import any_of_trade_pair_thresholds_is_broken, make_call
 
 logger = logging.getLogger(f'{__name__}')
 

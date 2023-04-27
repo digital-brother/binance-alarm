@@ -6,29 +6,29 @@ import websocket
 
 logger = logging.getLogger(f'{__name__}')
 
-binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
 
-
-def format_trade_pair_for_user_message(trade_pair):
+def get_binance_exchange_info():
+    binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(binance_exchange_info_url)
-
     if response.status_code != 200:
         raise requests.exceptions.RequestException("API request for get binance exchange data was failed")
 
-    binance_exchange_info = response.json()
+    return response.json()
+
+
+def format_trade_pair_for_message(trade_pair):
+    binance_exchange_info = get_binance_exchange_info()
 
     for trade_pair_abbreviation in binance_exchange_info["symbols"]:
         if trade_pair_abbreviation["symbol"] == trade_pair.upper():
-            return f"{trade_pair_abbreviation['baseAsset']}/{trade_pair_abbreviation['quoteAsset']}"
+            trade_pair_str = f"{trade_pair_abbreviation['baseAsset']}/{trade_pair_abbreviation['quoteAsset']}"
+            return trade_pair_str
 
-    raise ValueError("Trading pair not found")
+    raise ValueError(f"No matching trade pair found for '{trade_pair}'")
 
 
 def get_binance_valid_list_of_trade_pairs():
-    response = requests.get(binance_exchange_info_url)
-    binance_exchange_info = response.json()
-    if response.status_code != 200:
-        raise requests.exceptions.RequestException("API request for get binance exchange data was failed")
+    binance_exchange_info = get_binance_exchange_info()
 
     valid_list_of_trade_pairs = [trade_pair_abbreviation['symbol'].lower() for trade_pair_abbreviation in
                                  binance_exchange_info['symbols']]
