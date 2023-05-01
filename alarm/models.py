@@ -19,6 +19,14 @@ class Phone(models.Model):
     def __str__(self):
         return str(self.number)
 
+    def refresh_message(self, message):
+        self.message = message
+        self.save()
+
+    def clear_old_message(self):
+        self.message = None
+        self.save()
+
 
 class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
@@ -85,3 +93,8 @@ class ThresholdBrake(models.Model):
 
     def __str__(self):
         return f"{self.threshold}"
+
+    def delete_old_threshold_brake(self):
+        threshold_brakes = ThresholdBrake.objects.filter(threshold=self.threshold)
+        threshold_brakes.delete()
+
