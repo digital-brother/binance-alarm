@@ -27,7 +27,7 @@ def format_trade_pair_for_message(trade_pair):
     raise ValueError(f"No matching trade pair found for '{trade_pair}'")
 
 
-def get_binance_valid_list_of_trade_pairs():
+def get_binance_trade_pairs():
     binance_exchange_info = get_binance_exchange_info()
 
     valid_list_of_trade_pairs = [trade_pair_abbreviation['symbol'].lower() for trade_pair_abbreviation in

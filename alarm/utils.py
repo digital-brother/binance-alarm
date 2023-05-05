@@ -1,5 +1,8 @@
 import logging
-import time
+from datetime import timedelta
+
+from django.utils import timezone
+
 from alarm.binance_utils import format_trade_pair_for_message
 
 from twilio.rest import Client
@@ -32,126 +35,53 @@ def any_of_trade_pair_thresholds_is_broken(trade_pair):
     return False
 
 
-def refresh_thresholds_brakes_from_recent_candles_update(trade_pair):
+def create_thresholds_brakes_from_recent_candles_update(trade_pair):
     thresholds = Threshold.objects.filter(trade_pair=trade_pair)
-    for threshold in Threshold.objects.filter(trade_pair=trade_pair):
-        if ThresholdBrake.objects.filter(threshold=threshold).exists():
-            continue
     for threshold in thresholds:
-        try:
-            latest_threshold_brake = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair).latest(
-                'happened_at')
-            if latest_threshold_brake:
-                return False
-        except ThresholdBrake.DoesNotExist:
-            pass
-
         ThresholdBrake.objects.create(threshold=threshold)
 
 
-def create_message_about_threshold_break():
-    all_threshold_breaks = ThresholdBrake.objects.all()
+def create_message_for_threshold_break(trade_pair):
+    three_second_ago = timezone.now() - timedelta(seconds=3)
+
     messages = {}
-    for threshold_break in all_threshold_breaks:
-        threshold = threshold_break.threshold
 
-        trade_pair = threshold.trade_pair
+    trade_pair_str = format_trade_pair_for_message(trade_pair)
 
-        trade_pair_str = format_trade_pair_for_message(trade_pair)
+    threshold_brake_prices = list(
+        ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair, happened_at__gte=three_second_ago).values_list(
+            'threshold__price', flat=True))
 
-        threshold_prices = list(Threshold.objects.filter(trade_pair=trade_pair).values_list('price', flat=True))
-        threshold_prices_str = ', '.join([f'{price}$' for price in threshold_prices])
+    threshold_brake_prices_str = ', '.join([f'{price}$' for price in threshold_brake_prices])
 
-        last_candle = Candle.objects.filter(trade_pair=trade_pair).order_by('-modified').last()
-        last_candle_high_price = last_candle.high_price if last_candle else None
+    last_candle = Candle.objects.filter(trade_pair=trade_pair).order_by('-modified').last()
+    last_candle_high_price = last_candle.high_price if last_candle else None
 
-        message = messages.setdefault(trade_pair,
-                                      f" Attention! Trade pair {trade_pair_str} has broken thresholds ")
-        message += f'{threshold_prices_str} and current price is {last_candle_high_price}$ '
-        messages[trade_pair] = message
+    message = messages.setdefault(trade_pair,
+                                  f" Attention! Trade pair {trade_pair_str} has broken thresholds ")
+    message += f'{threshold_brake_prices_str} and current price is {last_candle_high_price}$ '
+    messages[trade_pair] = message
+    return ''.join(messages.values())
 
+
+def combine_threshold_break_messages(trade_pair):
+    messages = create_message_for_threshold_break(trade_pair)
     message_with_twiml_elements = '<Response><Say>'
-    message_with_twiml_elements += ''.join(messages.values())
+    message_with_twiml_elements += ''.join(messages)
     message_with_twiml_elements += '</Say></Response>'
     return message_with_twiml_elements
 
 
 def refresh_message_about_threshold_break(trade_pair):
-    message = create_message_about_threshold_break()
+    message = combine_threshold_break_messages(trade_pair)
     threshold = Threshold.objects.filter(trade_pair=trade_pair).first()
 
     if not threshold:
         logger.error('Threshold is not found')
         return
 
-    phone = threshold.phone
-
-    phone.refresh_message(message)
+    threshold.phone.refresh_message(message)
 
 
-def make_call(trade_pair):
-    threshold = Threshold.objects.filter(trade_pair=trade_pair).first()
-
-    if threshold:
-        phone = threshold.phone
-        phone_number_user = str(phone.number)
-        message = phone.message
-
-        # Create the call using Twilio
-        call = twilio_client.calls.create(
-            twiml=message,
-            to=phone_number_user,
-            from_=PHONE_NUMBER_TWILLIO
-        )
-
-        update_call_if_needed(call, phone_number_user, message)
-
-
-def update_call_if_needed(call, phone_number_user, message):
-    while True:
-        call = call.fetch()
-        if call.status == 'completed':
-            ThresholdBrake.delete_old_threshold_brake()
-            Phone.clear_old_message()
-            time.sleep(900)
-            break
-        elif call.status == 'canceled':
-            call = twilio_client.calls.create(
-                twiml=message,
-                to=phone_number_user,
-                from_=PHONE_NUMBER_TWILLIO
-            )
-        elif call.status in ['ringing', 'answered', 'in-progress']:
-            time.sleep(60)
-            call = call.fetch()
-            if call.status == 'completed':
-                ThresholdBrake.delete_old_threshold_brake()
-                Phone.clear_old_message()
-                break
-            elif call.status == 'no-answer':
-                for i in range(15):
-                    time.sleep(60)
-                    call = twilio_client.calls.create(
-                        twiml=message,
-                        to=phone_number_user,
-                        from_=PHONE_NUMBER_TWILLIO
-                    )
-                    call = call.fetch()
-                    if call.status in ['ringing', 'answered', 'in-progress']:
-                        time.sleep(60)
-                        call = call.fetch()
-                        if call.status == 'completed':
-                            ThresholdBrake.delete_old_threshold_brake()
-                            Phone.clear_old_message()
-                            break
-            else:
-                break
-        elif call.status in ['queued', 'busy', 'failed']:
-            time.sleep(60)
-            call = twilio_client.calls.create(
-                twiml=message,
-                to=phone_number_user,
-                from_=PHONE_NUMBER_TWILLIO
-            )
-        else:
-            break
+def make_call():
+    print('MAKE CALL')

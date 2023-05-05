@@ -1,11 +1,11 @@
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_binance_valid_list_of_trade_pairs
+from alarm.binance_utils import get_binance_trade_pairs
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -20,7 +20,7 @@ class Phone(models.Model):
         return str(self.number)
 
     def refresh_message(self, message):
-        self.message = message
+        self.message += " " + message
         self.save()
 
     def clear_old_message(self):
@@ -38,8 +38,8 @@ class Threshold(models.Model):
 
     def clean(self):
         super().clean()
-        valid_list_of_trade_pairs = get_binance_valid_list_of_trade_pairs()
-        if self.trade_pair not in valid_list_of_trade_pairs:
+        valid_trade_pairs = get_binance_trade_pairs()
+        if self.trade_pair not in valid_trade_pairs:
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
 
@@ -94,7 +94,6 @@ class ThresholdBrake(models.Model):
     def __str__(self):
         return f"{self.threshold}"
 
-    def delete_old_threshold_brake(self):
+    def delete_old_threshold_brakes(self):
         threshold_brakes = ThresholdBrake.objects.filter(threshold=self.threshold)
         threshold_brakes.delete()
-
