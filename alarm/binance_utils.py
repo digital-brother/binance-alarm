@@ -29,7 +29,8 @@ def format_trade_pair_for_message(trade_pair):
     for trade_pair_with_base_quote_asset in binance_valid_trade_pairs_with_base_quote_assets:
         if trade_pair.upper() in trade_pair_with_base_quote_asset:
             base_asset = binance_valid_trade_pairs_with_base_quote_assets[trade_pair_with_base_quote_asset]['baseAsset']
-            quote_asset = binance_valid_trade_pairs_with_base_quote_assets[trade_pair_with_base_quote_asset]['quoteAsset']
+            quote_asset = binance_valid_trade_pairs_with_base_quote_assets[trade_pair_with_base_quote_asset][
+                'quoteAsset']
             trade_pair_str = f"{base_asset}/{quote_asset}"
             return trade_pair_str
 
