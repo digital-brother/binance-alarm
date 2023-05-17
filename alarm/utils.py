@@ -73,7 +73,7 @@ def create_message_for_threshold_break(trade_pair):
 
 def create_twiml_response_for_threshold_break(trade_pair):
     message = create_message_for_threshold_break(trade_pair)
-    message_with_twiml_elements = f"<Response><Say>{''.join(message)}</Say></Response>"
+    message_with_twiml_elements = f"<Response><Say>{message}</Say></Response>"
     return message_with_twiml_elements
 
 
