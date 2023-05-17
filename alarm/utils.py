@@ -65,17 +65,15 @@ def create_message_for_threshold_break(trade_pair):
 
     trade_pair_current_price = get_trade_pair_current_price(trade_pair)
 
-    message = f"Attention! Trade pair {trade_pair_str} has broken thresholds {thresholds_brake_prices_str} "
-    message += f"and current price is {trade_pair_current_price}$"
+    message = f"Attention! Trade pair {trade_pair_str} has broken thresholds {thresholds_brake_prices_str} and " \
+              f"the current price is {trade_pair_current_price}$"
 
     return message
 
 
 def create_twiml_response_for_threshold_break(trade_pair):
     message = create_message_for_threshold_break(trade_pair)
-    message_with_twiml_elements = '<Response><Say>'
-    message_with_twiml_elements += ''.join(message)
-    message_with_twiml_elements += '</Say></Response>'
+    message_with_twiml_elements = f"<Response><Say>{''.join(message)}</Say></Response>"
     return message_with_twiml_elements
 
 
@@ -89,7 +87,6 @@ def refresh_message_about_threshold_break(trade_pair):
 
     for phone in phones:
         phone.refresh_message(message)
-
 
 
 def make_call():
