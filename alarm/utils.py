@@ -41,19 +41,15 @@ def create_thresholds_brakes_from_recent_candles_update(trade_pair):
 
 
 def get_thresholds_brake_prices(trade_pair):
-    three_second_ago = timezone.now() - timezone.timedelta(seconds=3)
-    thresholds_brake_prices = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair,
-                                                            happened_at__gte=three_second_ago).values_list(
+    thresholds_brake_prices = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair).order_by(
+        '-happened_at').values_list(
         'threshold__price', flat=True)
     return thresholds_brake_prices
 
 
 def get_trade_pair_current_price(trade_pair):
     last_candle = Candle.last_for_trade_pair(trade_pair)
-    if last_candle:
-        return last_candle.high_price
-    else:
-        return None
+    return last_candle.high_price if last_candle else None
 
 
 def create_message_for_threshold_break(trade_pair):
@@ -78,7 +74,7 @@ def create_twiml_response_for_threshold_break(trade_pair):
 
 
 def refresh_message_about_threshold_break(trade_pair):
-    message = create_twiml_response_for_threshold_break(trade_pair)
+    message = create_message_for_threshold_break(trade_pair)
     phones = Phone.objects.filter(threshold__trade_pair=trade_pair)
 
     if not phones:

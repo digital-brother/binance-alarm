@@ -14,7 +14,7 @@ class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     number = PhoneNumberField(blank=True, unique=True, region='UA')
     enabled = models.BooleanField(default=False)
-    message = models.TextField(default=None)
+    message = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return str(self.number)
