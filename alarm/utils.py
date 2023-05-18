@@ -1,7 +1,5 @@
 import logging
 
-from django.utils import timezone
-
 from alarm.binance_utils import format_trade_pair_for_message
 
 from twilio.rest import Client
