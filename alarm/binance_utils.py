@@ -1,7 +1,8 @@
 import json
 import logging
-import requests
 import ssl
+
+import requests
 import websocket
 
 logger = logging.getLogger(f'{__name__}')
@@ -16,12 +17,18 @@ def get_binance_valid_trade_pairs():
 
     data = response.json()
     trade_pairs = data['symbols']
-    trade_pairs_with_base_quote_assets = {}
+    binance_valid_trade_pairs = {}
     for trade_pair in trade_pairs:
         base_asset = trade_pair['baseAsset']
         quote_asset = trade_pair['quoteAsset']
-        trade_pairs_with_base_quote_assets[trade_pair['symbol']] = {'baseAsset': base_asset, 'quoteAsset': quote_asset}
-    return trade_pairs_with_base_quote_assets
+        trade_pair_name = trade_pair['symbol']
+        binance_valid_trade_pairs.update(
+            {trade_pair_name: {
+                'baseAsset': base_asset,
+                'quoteAsset': quote_asset}
+            }
+        )
+    return binance_valid_trade_pairs
 
 
 def format_trade_pair_for_message(trade_pair):
