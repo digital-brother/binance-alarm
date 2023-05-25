@@ -33,6 +33,9 @@ class Threshold(models.Model):
     trade_pair = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    class Meta:
+        unique_together = ['phone', 'trade_pair', 'price']
+
     def __str__(self):
         return f"{self.price}"
 
@@ -50,24 +53,6 @@ class Threshold(models.Model):
                 raise ValidationError(
                     f"{self.trade_pair} with the same threshold already exists under a different phone."
                 )
-
-        if self.pk:  # Check if it's an existing instance being updated
-            existing_thresholds_for_current_phone = Threshold.objects.filter(
-                trade_pair=self.trade_pair,
-                price=self.price,
-                phone=self.phone
-            ).exclude(pk=self.pk)  # Exclude the current instance from the query
-        else:
-            existing_thresholds_for_current_phone = Threshold.objects.filter(
-                trade_pair=self.trade_pair,
-                price=self.price,
-                phone=self.phone
-            )
-
-        if existing_thresholds_for_current_phone.exists():
-            raise ValidationError(
-                f"{self.trade_pair} with the same threshold already exists under the current phone."
-            )
 
     def is_broken(self, previous_candle, current_candle):
         if previous_candle and current_candle:
