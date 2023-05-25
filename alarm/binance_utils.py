@@ -7,7 +7,8 @@ import websocket
 logger = logging.getLogger(f'{__name__}')
 
 
-def get_binance_valid_trade_pairs_with_base_quote_assets():
+def get_binance_valid_trade_pairs():
+    """Returns a dict in a format: {<trade_pair_name>' {'base_asset': , 'quote_asset': }}"""
     binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(binance_exchange_info_url)
     if response.status_code != 200:
@@ -24,21 +25,21 @@ def get_binance_valid_trade_pairs_with_base_quote_assets():
 
 
 def format_trade_pair_for_message(trade_pair):
-    binance_valid_trade_pairs_with_base_quote_assets = get_binance_valid_trade_pairs_with_base_quote_assets()
+    binance_valid_trade_pairs = get_binance_valid_trade_pairs()
 
-    for trade_pair_with_base_quote_asset in binance_valid_trade_pairs_with_base_quote_assets:
-        if trade_pair.upper() in trade_pair_with_base_quote_asset:
-            base_asset = binance_valid_trade_pairs_with_base_quote_assets[trade_pair_with_base_quote_asset]['baseAsset']
-            quote_asset = binance_valid_trade_pairs_with_base_quote_assets[trade_pair_with_base_quote_asset][
-                'quoteAsset']
-            trade_pair_str = f"{base_asset}/{quote_asset}"
-            return trade_pair_str
+    trade_pair_info = binance_valid_trade_pairs.get(trade_pair.upper())
+
+    if trade_pair_info is not None:
+        base_asset = trade_pair_info['baseAsset']
+        quote_asset = trade_pair_info['quoteAsset']
+        trade_pair_str = f"{base_asset}/{quote_asset}"
+        return trade_pair_str
 
     raise ValueError(f"No matching trade pair found for '{trade_pair}'")
 
 
 def get_binance_valid_list_of_trade_pairs():
-    binance_exchange_info = get_binance_valid_trade_pairs_with_base_quote_assets()
+    binance_exchange_info = get_binance_valid_trade_pairs()
 
     valid_list_of_trade_pairs = [trade_pair_abbreviation.lower() for trade_pair_abbreviation in
                                  binance_exchange_info]

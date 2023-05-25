@@ -20,7 +20,7 @@ class Phone(models.Model):
         return str(self.number)
 
     def refresh_message(self, message):
-        self.message += " " + message
+        self.message = message
         self.save()
 
     def clear_old_message(self):
@@ -38,10 +38,36 @@ class Threshold(models.Model):
 
     def clean(self):
         super().clean()
+
         valid_trade_pairs = get_binance_valid_list_of_trade_pairs()
         if self.trade_pair not in valid_trade_pairs:
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
+
+        existing_thresholds = Threshold.objects.filter(trade_pair=self.trade_pair, price=self.price)
+        for threshold in existing_thresholds:
+            if threshold.phone != self.phone:
+                raise ValidationError(
+                    f"{self.trade_pair} with the same threshold already exists under a different phone."
+                )
+
+        if self.pk:  # Check if it's an existing instance being updated
+            existing_thresholds_for_current_phone = Threshold.objects.filter(
+                trade_pair=self.trade_pair,
+                price=self.price,
+                phone=self.phone
+            ).exclude(pk=self.pk)  # Exclude the current instance from the query
+        else:
+            existing_thresholds_for_current_phone = Threshold.objects.filter(
+                trade_pair=self.trade_pair,
+                price=self.price,
+                phone=self.phone
+            )
+
+        if existing_thresholds_for_current_phone.exists():
+            raise ValidationError(
+                f"{self.trade_pair} with the same threshold already exists under the current phone."
+            )
 
     def is_broken(self, previous_candle, current_candle):
         if previous_candle and current_candle:
