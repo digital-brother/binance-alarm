@@ -49,10 +49,6 @@ def get_binance_valid_trade_pairs_2():
     return valid_list_of_trade_pairs
 
 
-def close_binance_socket(socket):
-    socket.close()
-
-
 def connect_binance_socket(trade_pairs):
     interval = '1s'
     websocket.enableTrace(False)
