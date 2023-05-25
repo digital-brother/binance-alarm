@@ -47,13 +47,6 @@ class Threshold(models.Model):
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
 
-        existing_thresholds = Threshold.objects.filter(trade_pair=self.trade_pair, price=self.price)
-        for threshold in existing_thresholds:
-            if threshold.phone != self.phone:
-                raise ValidationError(
-                    f"{self.trade_pair} with the same threshold already exists under a different phone."
-                )
-
     def is_broken(self, previous_candle, current_candle):
         if previous_candle and current_candle:
             return (
