@@ -1,6 +1,6 @@
 import logging
 
-from alarm.binance_utils import format_trade_pair_for_message
+from alarm.binance_utils import get_trade_pair_str
 
 from twilio.rest import Client
 
@@ -46,7 +46,7 @@ def get_trade_pair_current_price(trade_pair):
 
 
 def get_message_for_threshold_break(trade_pair):
-    trade_pair_str = format_trade_pair_for_message(trade_pair)
+    trade_pair_str = get_trade_pair_str(trade_pair)
 
     thresholds_brake_prices = get_thresholds_brake_prices(trade_pair)
 

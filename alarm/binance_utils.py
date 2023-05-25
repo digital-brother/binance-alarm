@@ -31,18 +31,15 @@ def get_binance_valid_trade_pairs():
     return binance_valid_trade_pairs
 
 
-def format_trade_pair_for_message(trade_pair):
+def get_trade_pair_str(trade_pair):
     binance_valid_trade_pairs = get_binance_valid_trade_pairs()
-
     trade_pair_info = binance_valid_trade_pairs.get(trade_pair.upper())
+    if trade_pair_info is None:
+        raise ValueError(f"No matching trade pair found for '{trade_pair}'")
 
-    if trade_pair_info is not None:
-        base_asset = trade_pair_info['baseAsset']
-        quote_asset = trade_pair_info['quoteAsset']
-        trade_pair_str = f"{base_asset}/{quote_asset}"
-        return trade_pair_str
-
-    raise ValueError(f"No matching trade pair found for '{trade_pair}'")
+    base_asset = trade_pair_info['baseAsset']
+    quote_asset = trade_pair_info['quoteAsset']
+    return f"{base_asset}/{quote_asset}"
 
 
 def get_binance_valid_list_of_trade_pairs():
