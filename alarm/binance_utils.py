@@ -42,11 +42,10 @@ def get_trade_pair_str(trade_pair):
     return f"{base_asset}/{quote_asset}"
 
 
-def get_binance_valid_list_of_trade_pairs():
-    binance_exchange_info = get_binance_valid_trade_pairs()
-
-    valid_list_of_trade_pairs = [trade_pair_abbreviation.lower() for trade_pair_abbreviation in
-                                 binance_exchange_info]
+# TODO: function does almost the same as get_binance_valid_trade_pairs, refactor it
+def get_binance_valid_trade_pairs_2():
+    binance_valid_trade_pairs = get_binance_valid_trade_pairs()
+    valid_list_of_trade_pairs = [trade_pair_name.lower() for trade_pair_name in binance_valid_trade_pairs]
     return valid_list_of_trade_pairs
 
 
