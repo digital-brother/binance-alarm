@@ -17,9 +17,10 @@ def create_thresholds_brakes_from_recent_candles_update(trade_pair):
     last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
     penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
 
-    if last_candle is None and penultimate_candle is None:
-        return False
+    if last_candle is None or penultimate_candle is None:
+        return []
 
+    threshold_brakes = []
     for threshold in thresholds:
         threshold_broken = threshold.is_broken(last_candle, penultimate_candle)
         logger.info(f"{str(trade_pair).upper()}; "
@@ -27,10 +28,10 @@ def create_thresholds_brakes_from_recent_candles_update(trade_pair):
                     f"threshold: {threshold}; "
                     f"threshold broken: {threshold_broken}")
         if threshold_broken:
-            ThresholdBrake.objects.create(threshold=threshold)
-            return True
+            threshold_brake = ThresholdBrake.objects.create(threshold=threshold)
+            threshold_brakes.append(threshold_brake)
 
-    return False
+    return threshold_brakes
 
 
 def get_thresholds_brake_prices(trade_pair):

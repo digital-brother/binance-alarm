@@ -92,10 +92,10 @@ class Candle(models.Model):
 
     @classmethod
     def penultimate_for_trade_pair(cls, trade_pair):
-        candles = cls.objects.filter(trade_pair=trade_pair).order_by('modified')
-        if candles.count() < 2:
+        trade_pair_candles = cls.objects.filter(trade_pair=trade_pair).order_by('-modified')
+        if trade_pair_candles.count() < 2:
             return None
-        return cls.objects.filter(trade_pair=trade_pair).order_by('modified')[1]
+        return trade_pair_candles[-1]
 
     @classmethod
     @transaction.atomic
