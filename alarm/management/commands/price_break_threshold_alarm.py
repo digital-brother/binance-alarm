@@ -2,10 +2,10 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from alarm.binance_utils import connect_binance_socket, close_binance_socket, \
+from alarm.binance_utils import connect_binance_socket, \
     parse_candle_from_websocket_update
 from alarm.models import Threshold, Candle
-from alarm.utils import make_call, refresh_message_about_threshold_break, \
+from alarm.utils import make_call, refresh_phone_alarm_message, \
     create_thresholds_brakes_from_recent_candles_update
 
 logger = logging.getLogger(f'{__name__}')
@@ -28,9 +28,8 @@ class Command(BaseCommand):
                 Candle.refresh_candle_data(trade_pair, high_price, low_price)
 
                 if create_thresholds_brakes_from_recent_candles_update(trade_pair):
-                    refresh_message_about_threshold_break()
+                    refresh_phone_alarm_message()
                     make_call()
-
 
                 # Check if new trade pair appear in the database
                 new_trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()
@@ -42,8 +41,9 @@ class Command(BaseCommand):
                     socket = new_socket
 
         except KeyboardInterrupt:
-            close_binance_socket(socket)
+            socket.close()
         except (ValueError, KeyError) as err:
             logger.error(err)
 
-        close_binance_socket(socket)
+        socket.close()
+

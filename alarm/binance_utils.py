@@ -1,7 +1,8 @@
 import json
 import logging
-import requests
 import ssl
+
+import requests
 import websocket
 
 logger = logging.getLogger(f'{__name__}')
@@ -16,38 +17,36 @@ def get_binance_valid_trade_pairs():
 
     data = response.json()
     trade_pairs = data['symbols']
-    trade_pairs_with_base_quote_assets = {}
+    binance_valid_trade_pairs = {}
     for trade_pair in trade_pairs:
         base_asset = trade_pair['baseAsset']
         quote_asset = trade_pair['quoteAsset']
-        trade_pairs_with_base_quote_assets[trade_pair['symbol']] = {'baseAsset': base_asset, 'quoteAsset': quote_asset}
-    return trade_pairs_with_base_quote_assets
+        trade_pair_name = trade_pair['symbol']
+        binance_valid_trade_pairs.update(
+            {trade_pair_name: {
+                'baseAsset': base_asset,
+                'quoteAsset': quote_asset}
+            }
+        )
+    return binance_valid_trade_pairs
 
 
-def format_trade_pair_for_message(trade_pair):
+def get_trade_pair_str(trade_pair):
     binance_valid_trade_pairs = get_binance_valid_trade_pairs()
-
     trade_pair_info = binance_valid_trade_pairs.get(trade_pair.upper())
+    if trade_pair_info is None:
+        raise ValueError(f"No matching trade pair found for '{trade_pair}'")
 
-    if trade_pair_info is not None:
-        base_asset = trade_pair_info['baseAsset']
-        quote_asset = trade_pair_info['quoteAsset']
-        trade_pair_str = f"{base_asset}/{quote_asset}"
-        return trade_pair_str
-
-    raise ValueError(f"No matching trade pair found for '{trade_pair}'")
+    base_asset = trade_pair_info['baseAsset']
+    quote_asset = trade_pair_info['quoteAsset']
+    return f"{base_asset}/{quote_asset}"
 
 
-def get_binance_valid_list_of_trade_pairs():
-    binance_exchange_info = get_binance_valid_trade_pairs()
-
-    valid_list_of_trade_pairs = [trade_pair_abbreviation.lower() for trade_pair_abbreviation in
-                                 binance_exchange_info]
+# TODO: function does almost the same as get_binance_valid_trade_pairs, refactor it
+def get_binance_valid_trade_pairs_2():
+    binance_valid_trade_pairs = get_binance_valid_trade_pairs()
+    valid_list_of_trade_pairs = [trade_pair_name.lower() for trade_pair_name in binance_valid_trade_pairs]
     return valid_list_of_trade_pairs
-
-
-def close_binance_socket(socket):
-    socket.close()
 
 
 def connect_binance_socket(trade_pairs):
