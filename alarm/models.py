@@ -70,10 +70,11 @@ class Candle(models.Model):
 
     @classmethod
     def penultimate_for_trade_pair(cls, trade_pair):
+        # Negative indexing for Django querysets is not supported
         trade_pair_candles = cls.objects.filter(trade_pair=trade_pair).order_by('-modified')
         if trade_pair_candles.count() < 2:
             return None
-        return trade_pair_candles[-1]
+        return trade_pair_candles[1]
 
     @classmethod
     @transaction.atomic
