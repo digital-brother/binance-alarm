@@ -1,11 +1,11 @@
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm.binance_utils import get_binance_valid_trade_pairs_2
+from alarm.binance_utils import get_binance_valid_trade_pairs
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -16,15 +16,15 @@ class Phone(models.Model):
     enabled = models.BooleanField(default=False)
     message = models.TextField(null=True, blank=True)
 
+    def get_number(self):
+        pass
+        # Todo: create method to get numbers
+
     def __str__(self):
         return str(self.number)
 
     def refresh_message(self, message):
         self.message = message
-        self.save()
-
-    def clear_old_message(self):
-        self.message = None
         self.save()
 
 
@@ -42,7 +42,7 @@ class Threshold(models.Model):
     def clean(self):
         super().clean()
 
-        valid_trade_pairs = get_binance_valid_trade_pairs_2()
+        valid_trade_pairs = get_binance_valid_trade_pairs().keys()
         if self.trade_pair not in valid_trade_pairs:
             raise ValidationError(
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")

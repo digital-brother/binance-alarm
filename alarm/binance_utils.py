@@ -23,7 +23,7 @@ def get_binance_valid_trade_pairs():
         quote_asset = trade_pair['quoteAsset']
         trade_pair_name = trade_pair['symbol']
         binance_valid_trade_pairs.update(
-            {trade_pair_name: {
+            {trade_pair_name.lower(): {
                 'baseAsset': base_asset,
                 'quoteAsset': quote_asset}
             }
@@ -33,20 +33,13 @@ def get_binance_valid_trade_pairs():
 
 def get_trade_pair_str(trade_pair):
     binance_valid_trade_pairs = get_binance_valid_trade_pairs()
-    trade_pair_info = binance_valid_trade_pairs.get(trade_pair.upper())
+    trade_pair_info = binance_valid_trade_pairs.get(trade_pair)
     if trade_pair_info is None:
         raise ValueError(f"No matching trade pair found for '{trade_pair}'")
 
     base_asset = trade_pair_info['baseAsset']
     quote_asset = trade_pair_info['quoteAsset']
     return f"{base_asset}/{quote_asset}"
-
-
-# TODO: function does almost the same as get_binance_valid_trade_pairs, refactor it
-def get_binance_valid_trade_pairs_2():
-    binance_valid_trade_pairs = get_binance_valid_trade_pairs()
-    valid_list_of_trade_pairs = [trade_pair_name.lower() for trade_pair_name in binance_valid_trade_pairs]
-    return valid_list_of_trade_pairs
 
 
 def connect_binance_socket(trade_pairs):
