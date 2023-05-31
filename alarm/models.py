@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser, User
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -16,10 +16,6 @@ class Phone(models.Model):
     enabled = models.BooleanField(default=False)
     message = models.TextField(null=True, blank=True)
 
-    def get_number(self):
-        pass
-        # Todo: create method to get numbers
-
     def __str__(self):
         return str(self.number)
 
@@ -27,9 +23,21 @@ class Phone(models.Model):
         self.message = message
         self.save()
 
+    @classmethod
+    def create_alarm_message(cls):
+        from alarm.utils import get_trade_pair_alarm_message
+        phones = cls.objects.all()
+
+        for phone in phones:
+            message = ''
+            thresholds = phone.thresholds.all()
+            for threshold in thresholds:
+                message += ' ' + get_trade_pair_alarm_message(phone.number, threshold.trade_pair)
+            phone.refresh_message(message)
+
 
 class Threshold(models.Model):
-    phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='thresholds')
     trade_pair = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -55,6 +63,15 @@ class Threshold(models.Model):
                     max(previous_candle.high_price, current_candle.high_price)
             )
         return False
+
+    @staticmethod
+    def get_price_from_threshold_model(trade_pair):
+        try:
+            thresholds = Threshold.objects.filter(trade_pair=trade_pair)
+            prices = thresholds.values_list('price', flat=True)
+            return list(prices)
+        except Threshold.DoesNotExist:
+            raise Exception("No thresholds found for the given trade pair")
 
 
 class Candle(models.Model):
