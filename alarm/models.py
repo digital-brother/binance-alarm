@@ -16,6 +16,9 @@ class Phone(models.Model):
     enabled = models.BooleanField(default=False)
     message = models.TextField(null=True, blank=True)
 
+    def get_trade_pairs(self):
+        return self.thresholds.distinct().values_list('trade_pair', flat=True)
+
     def __str__(self):
         return str(self.number)
 
@@ -29,10 +32,15 @@ class Phone(models.Model):
         phones = cls.objects.all()
 
         for phone in phones:
+            number = phone.number
             message = ''
-            thresholds = phone.thresholds.all()
-            for threshold in thresholds:
-                message += ' ' + get_trade_pair_alarm_message(phone.number, threshold.trade_pair)
+            trade_pairs = phone.get_trade_pairs()
+            for trade_pair in trade_pairs:
+                broken_trade_pair = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair,
+                                                                  threshold__phone__number=number)
+                if not broken_trade_pair:
+                    break
+                message += ' ' + get_trade_pair_alarm_message(phone.number, trade_pair)
             phone.refresh_message(message)
 
 
@@ -63,15 +71,6 @@ class Threshold(models.Model):
                     max(previous_candle.high_price, current_candle.high_price)
             )
         return False
-
-    @staticmethod
-    def get_price_from_threshold_model(trade_pair):
-        try:
-            thresholds = Threshold.objects.filter(trade_pair=trade_pair)
-            prices = thresholds.values_list('price', flat=True)
-            return list(prices)
-        except Threshold.DoesNotExist:
-            raise Exception("No thresholds found for the given trade pair")
 
 
 class Candle(models.Model):

@@ -28,14 +28,13 @@ def create_thresholds_brakes_from_recent_candles_update(trade_pair):
                     f"threshold: {threshold}; "
                     f"threshold broken: {threshold_broken}")
         if threshold_broken:
-            threshold_brake = ThresholdBrake.objects.create(threshold=threshold)
+            threshold_brake = ThresholdBrake.objects.get_or_create(threshold=threshold)
             threshold_brakes.append(threshold_brake)
 
     return threshold_brakes
 
 
 def get_trade_pair_thresholds_brakes_prices_str(number, trade_pair):
-    prices = Threshold.get_price_from_threshold_model(trade_pair)
     thresholds = Threshold.objects.filter(phone__number=number, trade_pair=trade_pair)
     threshold_brake_prices = ThresholdBrake.objects.filter(threshold__in=thresholds).order_by(
         '-happened_at').values_list('threshold__price', flat=True)
@@ -60,10 +59,11 @@ def get_trade_pair_alarm_message(number, trade_pair):
     return message
 
 
+def get_message_with_twiml_elements_for_threshold_break(trade_pair):
+    message = get_trade_pair_alarm_message(trade_pair)
+    message_with_twiml_elements = f"<Response><Say>{message}</Say></Response>"
+    return message_with_twiml_elements
+
+
 def make_call():
     print('MAKE CALL')
-
-# def get_message_with_twiml_elements_for_threshold_break(trade_pair):
-#     message = get_trade_pair_alarm_message(trade_pair)
-#     message_with_twiml_elements = f"<Response><Say>{message}</Say></Response>"
-#     return message_with_twiml_elements
