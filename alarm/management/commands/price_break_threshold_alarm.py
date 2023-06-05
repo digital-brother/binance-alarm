@@ -22,12 +22,12 @@ class Command(BaseCommand):
             while True:
                 binance_data = socket.recv()
 
-                high_price, low_price, trade_pair = parse_candle_from_websocket_update(binance_data)
+                high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
 
-                Candle.refresh_candle_data(trade_pair, high_price, low_price)
+                Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
 
                 if create_thresholds_brakes_from_recent_candles_update(trade_pair):
-                    Phone.create_alarm_message()
+                    Phone.refresh_alarm_message_for_each_phone()
                     make_call()
 
                 # Check if new trade pair appear in the database

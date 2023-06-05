@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-import logging
 
 import environ
 from pathlib import Path
@@ -87,7 +86,6 @@ WSGI_APPLICATION = 'binance_alarm.wsgi.application'
 DATABASES = {"default": env.db("DATABASE_URL")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -149,8 +147,3 @@ LOGGING = {
         },
     },
 }
-
-ACCOUNT_SID = env("ACCOUNT_SID")
-AUTH_TOKEN = env("AUTH_TOKEN")
-PHONE_NUMBER_TWILLIO = env("PHONE_NUMBER_TWILLIO")
-USER_PHONE_NUMBER = env("USER_PHONE_NUMBER")

@@ -16,32 +16,36 @@ class Phone(models.Model):
     enabled = models.BooleanField(default=False)
     message = models.TextField(null=True, blank=True)
 
-    def get_trade_pairs(self):
-        return self.thresholds.distinct().values_list('trade_pair', flat=True)
-
     def __str__(self):
         return str(self.number)
 
-    def refresh_message(self, message):
+    @property
+    def get_trade_pairs(self):
+        return self.thresholds.distinct().values_list('trade_pair', flat=True)
+
+    def refresh_alarm_message(self):
+        from alarm.utils import get_alarm_message
+
+        number = self.number
+        message = ''
+        trade_pairs = self.get_trade_pairs
+
+        for trade_pair in trade_pairs:
+            broken_threshold = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair,
+                                                             threshold__phone__number=number)
+            if not broken_threshold:
+                break
+            message += ' ' + get_alarm_message(number, trade_pair)
+
         self.message = message
         self.save()
 
     @classmethod
-    def create_alarm_message(cls):
-        from alarm.utils import get_trade_pair_alarm_message
+    def refresh_alarm_message_for_each_phone(cls):
         phones = cls.objects.all()
 
         for phone in phones:
-            number = phone.number
-            message = ''
-            trade_pairs = phone.get_trade_pairs()
-            for trade_pair in trade_pairs:
-                broken_trade_pair = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair,
-                                                                  threshold__phone__number=number)
-                if not broken_trade_pair:
-                    break
-                message += ' ' + get_trade_pair_alarm_message(phone.number, trade_pair)
-            phone.refresh_message(message)
+            phone.refresh_alarm_message()
 
 
 class Threshold(models.Model):
@@ -79,10 +83,16 @@ class Candle(models.Model):
     modified = models.DateTimeField(auto_now=True)
     high_price = models.DecimalField(max_digits=10, decimal_places=2)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
+    close_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     @classmethod
     def last_for_trade_pair(cls, trade_pair):
         return cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
+
+    @classmethod
+    def get_trade_pair_close_price(cls, trade_pair):
+        last_candle = cls.last_for_trade_pair(trade_pair)
+        return last_candle.close_price if last_candle else None
 
     @classmethod
     def penultimate_for_trade_pair(cls, trade_pair):
@@ -94,14 +104,15 @@ class Candle(models.Model):
 
     @classmethod
     @transaction.atomic
-    def refresh_candle_data(cls, trade_pair, high_price, low_price):
+    def refresh_candle_data(cls, trade_pair, high_price, low_price, close_price):
         """Also deletes old candles, which we do not need anymore"""
         candle_to_keep = cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
 
         if candle_to_keep:
             cls.objects.filter(trade_pair=trade_pair).exclude(pk=candle_to_keep.pk).delete()
 
-        candle = cls.objects.create(trade_pair=trade_pair, high_price=high_price, low_price=low_price)
+        candle = cls.objects.create(trade_pair=trade_pair, high_price=high_price, low_price=low_price,
+                                    close_price=close_price)
         return candle
 
     def __str__(self):

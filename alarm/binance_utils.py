@@ -60,7 +60,8 @@ def parse_candle_from_websocket_update(data):
     candle = json_message['k']
     candle_high_price = float(candle['h'])
     candle_low_price = float(candle['l'])
+    candle_close_price = float(candle['c'])
     trade_pair = candle['s']
     trade_pair_lower_case = trade_pair.lower()
 
-    return candle_high_price, candle_low_price, trade_pair_lower_case
+    return candle_high_price, candle_low_price, candle_close_price, trade_pair_lower_case
