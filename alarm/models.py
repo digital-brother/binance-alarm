@@ -122,6 +122,8 @@ class Candle(models.Model):
 class ThresholdBrake(models.Model):
     threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE)
     happened_at = models.DateTimeField(auto_now_add=True)
+    user_notified = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.threshold}"
+        happened_at_str = self.happened_at.strftime('%Y-%m-%d %H:%M')
+        return f"{self.threshold.trade_pair} - {self.threshold.price} - {happened_at_str}"

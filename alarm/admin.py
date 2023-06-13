@@ -14,7 +14,7 @@ class PhoneAdmin(admin.ModelAdmin):
 
 class ThresholdBrakeAdmin(admin.ModelAdmin):
     model = ThresholdBrake
-    readonly_fields = ['id', 'threshold_id', 'happened_at']
+    readonly_fields = ['id', 'threshold_id', 'happened_at', 'user_notified']
 
 
 admin.site.register(Phone, PhoneAdmin)
