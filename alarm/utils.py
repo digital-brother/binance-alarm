@@ -39,7 +39,7 @@ def get_trade_pair_thresholds_brakes_prices_str(number, trade_pair):
     return thresholds_brake_prices_str
 
 
-def get_alarm_message(number, trade_pair):
+def get_trade_pair_alarm_message(number, trade_pair):
     trade_pair_str = get_trade_pair_str(trade_pair)
 
     threshold_brake_prices_str = get_trade_pair_thresholds_brakes_prices_str(number, trade_pair)
@@ -51,7 +51,7 @@ def get_alarm_message(number, trade_pair):
 
 
 def get_message_with_twiml_elements_for_threshold_break(trade_pair):
-    message = get_alarm_message(trade_pair)
+    message = get_trade_pair_alarm_message(trade_pair, )
     message_with_twiml_elements = f"<Response><Say>{message}</Say></Response>"
     return message_with_twiml_elements
 

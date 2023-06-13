@@ -20,24 +20,27 @@ class Phone(models.Model):
         return str(self.number)
 
     @property
-    def get_trade_pairs(self):
+    def trade_pairs(self):
         return self.thresholds.distinct().values_list('trade_pair', flat=True)
 
+    @property
+    def threshold_brakes(self):
+        return ThresholdBrake.objects.filter(threshold__phone__number=self.number)
+
+    def get_trade_pair_threshold_brakes(self, trade_pair):
+        return self.threshold_brakes.filter(threshold__trade_pair=trade_pair)
+
     def refresh_alarm_message(self):
-        from alarm.utils import get_alarm_message
+        from alarm.utils import get_trade_pair_alarm_message
 
-        number = self.number
-        message = ''
-        trade_pairs = self.get_trade_pairs
+        trade_pairs_alarm_messages = []
+        for trade_pair in self.trade_pairs:
+            trade_pair_broken_thresholds = self.get_trade_pair_threshold_brakes(trade_pair)
+            if trade_pair_broken_thresholds:
+                trade_pair_alarm_message = get_trade_pair_alarm_message(self.number, trade_pair)
+                trade_pairs_alarm_messages.append(trade_pair_alarm_message)
 
-        for trade_pair in trade_pairs:
-            broken_threshold = ThresholdBrake.objects.filter(threshold__trade_pair=trade_pair,
-                                                             threshold__phone__number=number)
-            if not broken_threshold:
-                break
-            message += ' ' + get_alarm_message(number, trade_pair)
-
-        self.message = message
+        self.message = ' '.join(trade_pairs_alarm_messages)
         self.save()
 
     @classmethod
