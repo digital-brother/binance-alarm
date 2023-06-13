@@ -26,8 +26,10 @@ class Command(BaseCommand):
 
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
 
-                if create_thresholds_brakes_from_recent_candles_update(trade_pair):
-                    Phone.refresh_alarm_message_for_each_phone()
+                created_threshold_brakes = create_thresholds_brakes_from_recent_candles_update(trade_pair)
+                affected_phones = {threshold_brake.threshold.phone for threshold_brake in created_threshold_brakes}
+                for phone in affected_phones:
+                    phone.refresh_alarm_message()
                     make_call()
 
                 # TODO: recheck logic

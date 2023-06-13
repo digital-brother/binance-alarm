@@ -43,10 +43,10 @@ class Phone(models.Model):
         self.message = ' '.join(trade_pairs_alarm_messages)
         self.save()
 
+    # TODO: Remove an unused method
     @classmethod
-    def refresh_alarm_message_for_each_phone(cls):
+    def refresh_alarm_messages_for_all_phones(cls):
         phones = cls.objects.all()
-
         for phone in phones:
             phone.refresh_alarm_message()
 
