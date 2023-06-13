@@ -9,11 +9,12 @@ logger = logging.getLogger(f'{__name__}')
 
 
 def get_binance_valid_trade_pairs():
-    """Returns a dict in a format: {<trade_pair_name>' {'base_asset': , 'quote_asset': }}"""
+    """Returns a dict in a format: {trade_pair_name': {'base_asset': 'str', 'quote_asset': 'str'}}"""
     binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(binance_exchange_info_url)
     if response.status_code != 200:
-        raise requests.exceptions.RequestException("API request for get binance exchange data was failed")
+        raise requests.exceptions.RequestException(
+            "API request to get Binance exchange info (valid trade pairs) was failed")
 
     data = response.json()
     trade_pairs = data['symbols']
