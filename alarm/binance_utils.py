@@ -9,12 +9,14 @@ logger = logging.getLogger(f'{__name__}')
 
 
 def get_binance_valid_trade_pairs():
-    """Returns a dict in a format: {trade_pair_name': {'base_asset': 'str', 'quote_asset': 'str'}}"""
+    """
+    Needed to get Binance valid trade pairs data, convert to a handy for a usage format.
+    Returns a dict in a format: {trade_pair_name': {'base_asset': 'str', 'quote_asset': 'str'}}.
+    """
     binance_exchange_info_url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(binance_exchange_info_url)
     if response.status_code != 200:
-        raise requests.exceptions.RequestException(
-            "API request to get Binance exchange info (valid trade pairs) was failed")
+        raise requests.exceptions.RequestException("Get Binance valid trade pairs request failed.")
 
     data = response.json()
     trade_pairs = data['symbols']
@@ -33,10 +35,14 @@ def get_binance_valid_trade_pairs():
 
 
 def get_trade_pair_str(trade_pair):
+    """
+    Gets Binance trade pair info by trade pair name,
+    returns 'base_asset/quote_asset' trade pair string representation
+    """
     binance_valid_trade_pairs = get_binance_valid_trade_pairs()
     trade_pair_info = binance_valid_trade_pairs.get(trade_pair)
     if trade_pair_info is None:
-        raise ValueError(f"No matching trade pair found for '{trade_pair}'")
+        raise ValueError(f"{trade_pair} is not a valid Binance trade pair.")
 
     base_asset = trade_pair_info['baseAsset']
     quote_asset = trade_pair_info['quoteAsset']
