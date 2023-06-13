@@ -71,6 +71,8 @@ class Threshold(models.Model):
                 f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
 
     def is_broken(self, previous_candle, current_candle):
+        # TODO: handle a case when program was paused for a while and price changed a lot
+        # TODO: handle case when penultimate candle is absent
         if previous_candle and current_candle:
             return (
                     min(previous_candle.low_price, current_candle.low_price) <=
@@ -119,7 +121,7 @@ class Candle(models.Model):
         return candle
 
     def __str__(self):
-        return f"{self.low_price}-{self.high_price}"
+        return f"{self.trade_pair}: {self.low_price}$ - {self.high_price}$"
 
 
 class ThresholdBrake(models.Model):
