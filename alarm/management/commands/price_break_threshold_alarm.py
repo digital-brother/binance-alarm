@@ -30,6 +30,7 @@ class Command(BaseCommand):
                     Phone.refresh_alarm_message_for_each_phone()
                     make_call()
 
+                # TODO: recheck logic
                 # Check if new trade pair appear in the database
                 new_trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()
                                    if threshold.trade_pair not in trade_pairs]
