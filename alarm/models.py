@@ -60,6 +60,17 @@ class TradePair:
     def threshold_brakes(self):
         return ThresholdBrake.objects.filter(threshold__phone=self.phone, trade_pair=self.trade_pair)
 
+    @property
+    def thresholds(self):
+        return Threshold.objects.filter(phone=self.phone, trade_pair=self.trade_pair)
+
+    @property
+    def thresholds_brakes_prices_str(self):
+        threshold_brake_prices = \
+            self.threshold_brakes.order_by('-happened_at').values_list('threshold__price', flat=True)
+        thresholds_brake_prices_str = ', '.join([f'{price}$' for price in threshold_brake_prices])
+        return thresholds_brake_prices_str
+
 
 class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='thresholds')
