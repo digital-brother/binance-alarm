@@ -51,6 +51,16 @@ class Phone(models.Model):
             phone.refresh_alarm_message()
 
 
+class TradePair:
+    def __init__(self, phone, trade_pair):
+        self.phone = phone
+        self.trade_pair = trade_pair
+
+    @property
+    def threshold_brakes(self):
+        return ThresholdBrake.objects.filter(threshold__phone=self.phone, trade_pair=self.trade_pair)
+
+
 class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='thresholds')
     trade_pair = models.CharField(max_length=255)
@@ -80,6 +90,13 @@ class Threshold(models.Model):
                     max(previous_candle.high_price, current_candle.high_price)
             )
         return False
+
+    def create_threshold_brake_if_needed(self):
+        last_trade_pair_threshold_brake = TradePair(self.phone, self.trade_pair).threshold_brakes.last()
+        is_duplicate_threshold_brake = self == last_trade_pair_threshold_brake.threshold
+        if is_duplicate_threshold_brake:
+            return last_trade_pair_threshold_brake, False
+        ThresholdBrake.objects.create(threshold=self)
 
 
 class Candle(models.Model):
@@ -125,7 +142,7 @@ class Candle(models.Model):
 
 
 class ThresholdBrake(models.Model):
-    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE)
+    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='threshold_brakes')
     happened_at = models.DateTimeField(auto_now_add=True)
     user_notified = models.BooleanField(default=False)
 

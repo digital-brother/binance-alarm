@@ -24,7 +24,7 @@ def create_thresholds_brakes_from_recent_candles_update(trade_pair):
                     f"threshold: {threshold}; "
                     f"threshold broken: {threshold_broken};")
         if threshold_broken:
-            threshold_brake = ThresholdBrake.objects.get_or_create(threshold=threshold)
+            threshold_brake = threshold.create_threshold_brake_if_needed()
             threshold_brakes.append(threshold_brake)
 
     return threshold_brakes
