@@ -65,11 +65,37 @@ class TradePair:
         return Threshold.objects.filter(phone=self.phone, trade_pair=self.trade_pair)
 
     @property
+    def display_value(self):
+        """
+        Gets Binance trade pair info by trade pair name,
+        returns 'base_asset/quote_asset' trade pair string representation
+        """
+        binance_valid_trade_pairs = get_binance_valid_trade_pairs()
+        trade_pair_info = binance_valid_trade_pairs.get(self.trade_pair)
+        if trade_pair_info is None:
+            raise ValueError(f"{self.trade_pair} is not a valid Binance trade pair.")
+
+        base_asset = trade_pair_info['baseAsset']
+        quote_asset = trade_pair_info['quoteAsset']
+        return f"{base_asset}/{quote_asset}"
+
+    @property
+    def close_price(self):
+        last_candle = Candle.last_for_trade_pair(self.trade_pair)
+        return last_candle.close_price if last_candle else None
+
+    @property
     def thresholds_brakes_prices_str(self):
         threshold_brake_prices = \
             self.threshold_brakes.order_by('-happened_at').values_list('threshold__price', flat=True)
         thresholds_brake_prices_str = ', '.join([f'{price}$' for price in threshold_brake_prices])
         return thresholds_brake_prices_str
+
+    def get_trade_pair_alarm_message(self):
+        message = f"{self.trade_pair} broken thresholds {self.thresholds_brakes_prices_str} " \
+                  f"and the current {self.trade_pair} price is {self.close_price}$."
+
+        return message
 
     @classmethod
     def create_thresholds_brakes_from_recent_candles_update(cls, trade_pair):
@@ -144,11 +170,6 @@ class Candle(models.Model):
     @classmethod
     def last_for_trade_pair(cls, trade_pair):
         return cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
-
-    @classmethod
-    def get_trade_pair_close_price(cls, trade_pair):
-        last_candle = cls.last_for_trade_pair(trade_pair)
-        return last_candle.close_price if last_candle else None
 
     @classmethod
     def penultimate_for_trade_pair(cls, trade_pair):
