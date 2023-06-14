@@ -71,6 +71,29 @@ class TradePair:
         thresholds_brake_prices_str = ', '.join([f'{price}$' for price in threshold_brake_prices])
         return thresholds_brake_prices_str
 
+    @classmethod
+    def create_thresholds_brakes_from_recent_candles_update(cls, trade_pair):
+        thresholds = Threshold.objects.filter(trade_pair=trade_pair)
+        last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
+        penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
+        trade_pair_close_price = Candle.get_trade_pair_close_price(trade_pair)
+
+        if last_candle is None or penultimate_candle is None:
+            return []
+
+        threshold_brakes = []
+        for threshold in thresholds:
+            threshold_broken = threshold.is_broken(last_candle, penultimate_candle)
+            logger.info(f"{str(trade_pair).upper()}; "
+                        f"candles: {penultimate_candle}, {last_candle}, {trade_pair_close_price}; "
+                        f"threshold: {threshold}; "
+                        f"threshold broken: {threshold_broken};")
+            if threshold_broken:
+                threshold_brake = threshold.create_threshold_brake_if_needed()
+                threshold_brakes.append(threshold_brake)
+
+        return threshold_brakes
+
 
 class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='thresholds')

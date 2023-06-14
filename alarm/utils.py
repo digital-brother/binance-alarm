@@ -7,29 +7,6 @@ from alarm.models import Threshold, Candle, ThresholdBrake, Phone, TradePair
 logger = logging.getLogger(f'{__name__}')
 
 
-def create_thresholds_brakes_from_recent_candles_update(trade_pair):
-    thresholds = Threshold.objects.filter(trade_pair=trade_pair)
-    last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
-    penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
-    trade_pair_close_price = Candle.get_trade_pair_close_price(trade_pair)
-
-    if last_candle is None or penultimate_candle is None:
-        return []
-
-    threshold_brakes = []
-    for threshold in thresholds:
-        threshold_broken = threshold.is_broken(last_candle, penultimate_candle)
-        logger.info(f"{str(trade_pair).upper()}; "
-                    f"candles: {penultimate_candle}, {last_candle}, {trade_pair_close_price}; "
-                    f"threshold: {threshold}; "
-                    f"threshold broken: {threshold_broken};")
-        if threshold_broken:
-            threshold_brake = threshold.create_threshold_brake_if_needed()
-            threshold_brakes.append(threshold_brake)
-
-    return threshold_brakes
-
-
 def get_trade_pair_alarm_message(number, trade_pair):
     trade_pair_str = get_trade_pair_str(trade_pair)
 

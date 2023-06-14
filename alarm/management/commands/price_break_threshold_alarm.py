@@ -4,8 +4,8 @@ from django.core.management.base import BaseCommand
 
 from alarm.binance_utils import connect_binance_socket, \
     parse_candle_from_websocket_update
-from alarm.models import Threshold, Candle, Phone
-from alarm.utils import make_call, create_thresholds_brakes_from_recent_candles_update
+from alarm.models import Threshold, Candle, TradePair
+from alarm.utils import make_call
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -26,7 +26,7 @@ class Command(BaseCommand):
 
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
 
-                created_threshold_brakes = create_thresholds_brakes_from_recent_candles_update(trade_pair)
+                created_threshold_brakes = TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
                 affected_phones = {threshold_brake.threshold.phone for threshold_brake in created_threshold_brakes}
                 for phone in affected_phones:
                     phone.refresh_alarm_message()
