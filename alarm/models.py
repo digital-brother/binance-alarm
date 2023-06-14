@@ -31,16 +31,15 @@ class Phone(models.Model):
         return self.threshold_brakes.filter(threshold__trade_pair=trade_pair)
 
     def refresh_alarm_message(self):
-        from alarm.utils import get_trade_pair_alarm_message
-
         trade_pairs_alarm_messages = []
+
         for trade_pair in self.trade_pairs:
-            trade_pair_broken_thresholds = self.get_trade_pair_threshold_brakes(trade_pair)
+            trade_pair_broken_thresholds = TradePair(self, trade_pair).threshold_brakes
             if trade_pair_broken_thresholds:
-                trade_pair_alarm_message = get_trade_pair_alarm_message(self.number, trade_pair)
+                trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
                 trade_pairs_alarm_messages.append(trade_pair_alarm_message)
 
-        self.message = ' '.join(trade_pairs_alarm_messages)
+        self.message = '\n'.join(trade_pairs_alarm_messages)
         self.save()
 
     # TODO: Remove an unused method
@@ -58,14 +57,14 @@ class TradePair:
 
     @property
     def threshold_brakes(self):
-        return ThresholdBrake.objects.filter(threshold__phone=self.phone, trade_pair=self.trade_pair)
+        return ThresholdBrake.objects.filter(threshold__phone=self.phone, threshold__trade_pair=self.trade_pair)
 
     @property
     def thresholds(self):
         return Threshold.objects.filter(phone=self.phone, trade_pair=self.trade_pair)
 
     @property
-    def display_value(self):
+    def display_name(self):
         """
         Gets Binance trade pair info by trade pair name,
         returns 'base_asset/quote_asset' trade pair string representation
@@ -91,9 +90,10 @@ class TradePair:
         thresholds_brake_prices_str = ', '.join([f'{price}$' for price in threshold_brake_prices])
         return thresholds_brake_prices_str
 
-    def get_trade_pair_alarm_message(self):
-        message = f"{self.trade_pair} broken thresholds {self.thresholds_brakes_prices_str} " \
-                  f"and the current {self.trade_pair} price is {self.close_price}$."
+    @property
+    def alarm_message(self):
+        message = f"{self.display_name} broken thresholds {self.thresholds_brakes_prices_str} " \
+                  f"and the current {self.display_name} price is {self.close_price}$."
 
         return message
 
@@ -103,12 +103,12 @@ class TradePair:
         last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
         penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
 
-        if last_candle is None or penultimate_candle is None:
+        if last_candle is None:
             return []
 
         threshold_brakes = []
         for threshold in thresholds:
-            threshold_broken = threshold.is_broken(last_candle, penultimate_candle)
+            threshold_broken = threshold.is_broken(penultimate_candle, last_candle)
             logger.info(f"{str(trade_pair).upper()}; "
                         f"candles: {penultimate_candle}, {last_candle}, {threshold.trade_pair_obj.close_price}; "
                         f"threshold: {threshold}; "
@@ -129,7 +129,7 @@ class Threshold(models.Model):
         unique_together = ['phone', 'trade_pair', 'price']
 
     def __str__(self):
-        return f"{self.price}"
+        return f"{self.trade_pair}: {self.price}"
 
     def clean(self):
         super().clean()
@@ -145,18 +145,21 @@ class Threshold(models.Model):
 
     def is_broken(self, previous_candle, current_candle):
         # TODO: handle a case when program was paused for a while and price changed a lot
-        # TODO: handle case when penultimate candle is absent
         if previous_candle and current_candle:
             return (
                     min(previous_candle.low_price, current_candle.low_price) <=
                     self.price <=
                     max(previous_candle.high_price, current_candle.high_price)
             )
+        elif current_candle:
+            return current_candle.low_price <= self.price <= current_candle.high_price
+
         return False
 
     def create_threshold_brake_if_needed(self):
         last_trade_pair_threshold_brake = TradePair(self.phone, self.trade_pair).threshold_brakes.last()
-        is_duplicate_threshold_brake = self == last_trade_pair_threshold_brake.threshold
+        is_duplicate_threshold_brake = self == last_trade_pair_threshold_brake.threshold \
+            if last_trade_pair_threshold_brake else None
         if is_duplicate_threshold_brake:
             return last_trade_pair_threshold_brake, False
         ThresholdBrake.objects.create(threshold=self)
@@ -166,8 +169,8 @@ class Candle(models.Model):
     # TODO: Possibly extract trade_pair model
     trade_pair = models.CharField(max_length=255)
     modified = models.DateTimeField(auto_now=True)
-    high_price = models.DecimalField(max_digits=10, decimal_places=2)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
+    high_price = models.DecimalField(max_digits=10, decimal_places=2)
     close_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     @classmethod
@@ -206,4 +209,4 @@ class ThresholdBrake(models.Model):
 
     def __str__(self):
         happened_at_str = self.happened_at.strftime('%Y-%m-%d %H:%M')
-        return f"{self.threshold.trade_pair} - {self.threshold.price} - {happened_at_str}"
+        return f"{self.threshold.trade_pair}: {self.threshold.price} ({happened_at_str})"
