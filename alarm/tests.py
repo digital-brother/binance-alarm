@@ -73,9 +73,21 @@ class TestCreateThresholdBrake:
         assert ThresholdBrake.objects.count() == 0
 
 
-class TestAlarmMessage:
+class TestTradePairAlarmMessage:
+    def test__trade_pair_alarm_message__no_threshold_brakes(self, phone):
+        trade_pair_obj = TradePair(phone=phone, trade_pair='lunausdt')
+        assert trade_pair_obj.alarm_message is None
+
     def test__trade_pair_alarm_message__single_threshold_brake(self):
         threshold_brake = ThresholdBrakeFactory()
+        CandleFactory()
+        trade_pair_obj = TradePair(phone=threshold_brake.threshold.phone, trade_pair=threshold_brake.threshold.trade_pair)
+        assert trade_pair_obj.alarm_message == \
+               'LUNA/USDT broken thresholds 10.00$ and the current LUNA/USDT price is 14.00$.'
+
+    def test__trade_pair_alarm_message__another_trade_pair_threshold_brake_not_shown(self, threshold_brake):
+        wing_threshold = ThresholdFactory(trade_pair='wingusdt', phone=threshold_brake.threshold.phone)
+        ThresholdBrakeFactory(threshold=wing_threshold)
         CandleFactory()
         trade_pair_obj = TradePair(phone=threshold_brake.threshold.phone, trade_pair=threshold_brake.threshold.trade_pair)
         assert trade_pair_obj.alarm_message == \
@@ -96,10 +108,8 @@ class TestAlarmMessage:
         assert trade_pair_obj.alarm_message == \
                'LUNA/USDT broken thresholds 10.00$, 12.00$, 10.00$ and the current LUNA/USDT price is 14.00$.'
 
-    def test__trade_pair_alarm_message__no_threshold_brakes(self, phone):
-        trade_pair_obj = TradePair(phone=phone, trade_pair='lunausdt')
-        assert trade_pair_obj.alarm_message is None
 
+class TestPhoneAlarmMessage:
     def test__phone_alarm_message__no_brakes(self, phone):
         assert phone.alarm_message is None
 
