@@ -11,6 +11,9 @@ pytestmark = pytest.mark.django_db
 
 register(UserFactory)
 register(PhoneFactory)
+register(ThresholdFactory)
+register(ThresholdBrakeFactory)
+register(CandleFactory)
 
 
 class TestThresholdIsBroken:
@@ -96,3 +99,18 @@ class TestAlarmMessage:
     def test__trade_pair_alarm_message__no_threshold_brakes(self, phone):
         trade_pair_obj = TradePair(phone=phone, trade_pair='lunausdt')
         assert trade_pair_obj.alarm_message is None
+
+    def test__phone_alarm_message__no_brakes(self, phone):
+        assert phone.alarm_message is None
+
+    def test__phone_alarm_message__single_trade_pair_broken(self, threshold_brake, candle):
+        assert threshold_brake.threshold.phone.alarm_message == \
+               'LUNA/USDT broken thresholds 10.00$ and the current LUNA/USDT price is 14.00$.'
+
+    def test__phone_alarm_message__two_trade_pairs_broken(self, threshold_brake, candle):
+        threshold_two = ThresholdFactory(trade_pair='wingusdt', price='20.00', phone=threshold_brake.threshold.phone)
+        CandleFactory(trade_pair='wingusdt', close_price=decimal.Decimal('24.00'))
+        ThresholdBrakeFactory(threshold=threshold_two)
+        assert threshold_brake.threshold.phone.alarm_message == \
+               'LUNA/USDT broken thresholds 10.00$ and the current LUNA/USDT price is 14.00$.\n' \
+               'WING/USDT broken thresholds 20.00$ and the current WING/USDT price is 24.00$.'

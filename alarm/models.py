@@ -32,16 +32,24 @@ class Phone(models.Model):
     def get_trade_pair_threshold_brakes(self, trade_pair):
         return self.threshold_brakes.filter(threshold__trade_pair=trade_pair)
 
-    def refresh_alarm_message(self):
+    @property
+    def alarm_message(self):
         trade_pairs_alarm_messages = []
 
         for trade_pair in self.trade_pairs:
-            trade_pair_broken_thresholds = TradePair(self, trade_pair).threshold_brakes
-            if trade_pair_broken_thresholds:
+            trade_pair_threshold_brakes = TradePair(self, trade_pair).threshold_brakes
+            if trade_pair_threshold_brakes:
                 trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
                 trade_pairs_alarm_messages.append(trade_pair_alarm_message)
 
-        self.message = '\n'.join(trade_pairs_alarm_messages)
+        if not trade_pairs_alarm_messages:
+            return None
+
+        alarm_message = '\n'.join(trade_pairs_alarm_messages)
+        return alarm_message
+
+    def refresh_alarm_message(self):
+        self.message = self.alarm_message()
         self.save()
 
     # TODO: Remove an unused method
