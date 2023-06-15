@@ -1,4 +1,5 @@
 import factory
+import decimal
 from django.contrib.auth import get_user_model
 from factory.django import DjangoModelFactory
 
@@ -23,6 +24,9 @@ class CandleFactory(DjangoModelFactory):
     class Meta:
         model = Candle
 
+    trade_pair = 'lunausdt'
+    low_price = decimal.Decimal('12.00')
+    high_price = decimal.Decimal('16.00')
     close_price = factory.LazyAttribute(lambda candle: (candle.low_price + candle.high_price) / 2)
 
 
@@ -31,10 +35,12 @@ class ThresholdFactory(DjangoModelFactory):
         model = Threshold
 
     phone = factory.SubFactory(PhoneFactory)
+    price = decimal.Decimal("10.00")
+    trade_pair = 'lunausdt'
 
 
 class ThresholdBrakeFactory(DjangoModelFactory):
     class Meta:
         model = ThresholdBrake
 
-    # phone = factory.SubFactory(PhoneFactory)
+    threshold = factory.SubFactory(ThresholdFactory)

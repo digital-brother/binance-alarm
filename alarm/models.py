@@ -94,9 +94,11 @@ class TradePair:
 
     @property
     def alarm_message(self):
+        if not self.thresholds_brakes_prices_str:
+            return None
+
         message = f"{self.display_name} broken thresholds {self.thresholds_brakes_prices_str} " \
                   f"and the current {self.display_name} price is {self.close_price}$."
-
         return message
 
     @classmethod
