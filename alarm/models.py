@@ -166,7 +166,6 @@ class Threshold(models.Model):
 
 
 class Candle(models.Model):
-    # TODO: Possibly extract trade_pair model
     trade_pair = models.CharField(max_length=255)
     modified = models.DateTimeField(auto_now=True)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
