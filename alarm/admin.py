@@ -12,6 +12,7 @@ class PhoneAdmin(admin.ModelAdmin):
     inlines = [CoinInline]
 
 
+# TODO: Make trade pair to be entered with no USDT prefix
 class ThresholdBrakeAdmin(admin.ModelAdmin):
     model = ThresholdBrake
     readonly_fields = ['id', 'threshold_id', 'happened_at', 'user_notified']
