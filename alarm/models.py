@@ -75,6 +75,7 @@ class Phone(models.Model):
         call_sid = twilio_utils.call(self.number, self.message)
         self.active_twilio_call_sid = call_sid
         self.save()
+        return call_sid
 
     @property
     def call_succeed(self):
@@ -82,12 +83,12 @@ class Phone(models.Model):
             raise ValidationError("No active call found: active_twilio_call_sid is not set. ")
 
         status = twilio_utils.get_call_status(self.active_twilio_call_sid)
-        pending_statuses = ['queued', 'initiated', 'ringing']
-        fail_statuses = ['busy', 'no-answer', 'canceled', 'failed']
-        success_statuses = ['in-progress', 'completed']
-        if status in pending_statuses + fail_statuses:
+        user_did_not_answer_yet_statuses = ['queued', 'initiated', 'ringing']
+        user_skipped_call_statuses = ['no-answer', 'canceled', 'failed']
+        user_reacted_statuses = ['in-progress', 'completed', 'busy']
+        if status in user_did_not_answer_yet_statuses + user_skipped_call_statuses:
             return False
-        elif status in success_statuses:
+        elif status in user_reacted_statuses:
             return True
         else:
             raise ValidationError(f'Unknown status: {status}')

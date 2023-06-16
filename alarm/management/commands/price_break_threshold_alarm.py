@@ -19,6 +19,9 @@ class Command(BaseCommand):
 
         try:
             while True:
+                # TODO: update to include phones whose thresholds were marked as seen
+                affected_phones = {}
+
                 binance_data = socket.recv()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
@@ -26,7 +29,8 @@ class Command(BaseCommand):
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
 
                 created_threshold_brakes = TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
-                affected_phones = {threshold_brake.threshold.phone for threshold_brake in created_threshold_brakes}
+                affected_phones = affected_phones.union(
+                    {threshold_brake.threshold.phone for threshold_brake in created_threshold_brakes})
                 for phone in affected_phones:
                     phone.refresh_alarm_message()
                     phone.send_alarm_message()
