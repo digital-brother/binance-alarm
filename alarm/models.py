@@ -75,7 +75,11 @@ class TradePair:
 
     @property
     def display_name(self):
-        display_name = self.trade_pair.replace('usdt', '').upper()
+        return self.get_display_name(self.trade_pair)
+
+    @staticmethod
+    def get_display_name(trade_pair):
+        display_name = trade_pair.replace('USDT', '').upper()
         return display_name
 
     @property
@@ -87,7 +91,7 @@ class TradePair:
     def thresholds_brakes_prices_str(self):
         threshold_brake_prices = \
             self.threshold_brakes.order_by('-happened_at').values_list('threshold__price', flat=True)
-        thresholds_brake_prices_str = ', '.join([f'{price}$' for price in threshold_brake_prices])
+        thresholds_brake_prices_str = ', '.join([f'{price}' for price in threshold_brake_prices])
         return thresholds_brake_prices_str
 
     @property
@@ -96,7 +100,7 @@ class TradePair:
             return None
 
         message = f"{self.display_name} broken thresholds {self.thresholds_brakes_prices_str} " \
-                  f"and the current {self.display_name} price is {self.close_price}$."
+                  f"and the current {self.display_name} price is {self.close_price}."
         return message
 
     @classmethod
@@ -131,13 +135,14 @@ class Threshold(models.Model):
         unique_together = ['phone', 'trade_pair', 'price']
 
     def __str__(self):
-        return f"{self.trade_pair}: {self.price}"
+        trade_pair_display_name = TradePair.get_display_name(self.trade_pair)
+        return f"{trade_pair_display_name}: {self.price}"
 
     def clean(self):
         super().clean()
 
         # Optimized for performance to avoid requesting Binance API while getting a trade pair display name
-        if not self.trade_pair.endswith('usdt'):
+        if not self.trade_pair.endswith('USDT'):
             raise ValidationError("Trade pair name should end with 'usdt'.")
 
         valid_trade_pairs = get_binance_valid_trade_pairs().keys()
@@ -178,6 +183,10 @@ class Candle(models.Model):
     high_price = models.DecimalField(max_digits=10, decimal_places=2)
     close_price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+        trade_pair_display_name = TradePair.get_display_name(self.trade_pair)
+        return f"{trade_pair_display_name}: {self.low_price} - {self.high_price}"
+
     @classmethod
     def last_for_trade_pair(cls, trade_pair):
         return cls.objects.filter(trade_pair=trade_pair).order_by('modified').last()
@@ -203,9 +212,6 @@ class Candle(models.Model):
                                     close_price=close_price)
         return candle
 
-    def __str__(self):
-        return f"{self.trade_pair}: {self.low_price}$ - {self.high_price}$"
-
 
 class ThresholdBrake(models.Model):
     threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='threshold_brakes')
@@ -214,4 +220,5 @@ class ThresholdBrake(models.Model):
 
     def __str__(self):
         happened_at_str = self.happened_at.strftime('%Y-%m-%d %H:%M')
-        return f"{self.threshold.trade_pair}: {self.threshold.price} ({happened_at_str})"
+        trade_pair_display_name = TradePair.get_display_name(self.threshold.trade_pair)
+        return f"{trade_pair_display_name}: {self.threshold.price} ({happened_at_str})"

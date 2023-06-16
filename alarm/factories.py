@@ -24,7 +24,7 @@ class CandleFactory(DjangoModelFactory):
     class Meta:
         model = Candle
 
-    trade_pair = 'lunausdt'
+    trade_pair = 'LUNAUSDT'
     low_price = decimal.Decimal('12.00')
     high_price = decimal.Decimal('16.00')
     close_price = factory.LazyAttribute(lambda candle: (candle.low_price + candle.high_price) / 2)
@@ -36,7 +36,7 @@ class ThresholdFactory(DjangoModelFactory):
 
     phone = factory.SubFactory(PhoneFactory)
     price = decimal.Decimal("10.00")
-    trade_pair = 'lunausdt'
+    trade_pair = 'LUNAUSDT'
 
 
 class ThresholdBrakeFactory(DjangoModelFactory):

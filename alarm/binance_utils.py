@@ -27,7 +27,7 @@ def get_binance_valid_trade_pairs():
         trade_pair_name = trade_pair['symbol']
         # TODO: remove trade pair lower
         binance_valid_trade_pairs.update(
-            {trade_pair_name.lower(): {
+            {trade_pair_name: {
                 'baseAsset': base_asset,
                 'quoteAsset': quote_asset}
             }
@@ -56,5 +56,4 @@ def parse_candle_from_websocket_update(data):
     candle_close_price = float(candle['c'])
     trade_pair = candle['s']
     # TODO: remove trade pair lower
-    trade_pair_lower_case = trade_pair.lower()
-    return candle_high_price, candle_low_price, candle_close_price, trade_pair_lower_case
+    return candle_high_price, candle_low_price, candle_close_price, trade_pair
