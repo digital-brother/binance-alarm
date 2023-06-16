@@ -29,7 +29,7 @@ class Command(BaseCommand):
                 affected_phones = {threshold_brake.threshold.phone for threshold_brake in created_threshold_brakes}
                 for phone in affected_phones:
                     phone.refresh_alarm_message()
-                    phone.send_alarm_message_by_telegram()
+                    phone.send_alarm_message()
 
                 # TODO: recheck logic
                 # Check if new trade pair appear in the database

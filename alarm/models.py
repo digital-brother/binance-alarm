@@ -28,23 +28,19 @@ class Phone(models.Model):
         return self.thresholds.distinct().values_list('trade_pair', flat=True)
 
     @property
-    def threshold_brakes(self):
-        return ThresholdBrake.objects.filter(threshold__phone__number=self.number)
-
-    @property
     def unseen_threshold_brakes(self):
         return ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
 
-    def get_trade_pair_threshold_brakes(self, trade_pair):
-        return self.threshold_brakes.filter(threshold__trade_pair=trade_pair)
+    def get_trade_pair_unseen_threshold_brakes(self, trade_pair):
+        return self.unseen_threshold_brakes.filter(threshold__trade_pair=trade_pair)
 
     @property
     def alarm_message(self):
         trade_pairs_alarm_messages = []
 
         for trade_pair in self.trade_pairs:
-            trade_pair_threshold_brakes = TradePair(self, trade_pair).unseen_threshold_brakes
-            if trade_pair_threshold_brakes:
+            trade_pair_unseen_threshold_brakes = TradePair(self, trade_pair).unseen_threshold_brakes
+            if trade_pair_unseen_threshold_brakes:
                 trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
                 trade_pairs_alarm_messages.append(trade_pair_alarm_message)
 
@@ -65,13 +61,13 @@ class Phone(models.Model):
         for phone in phones:
             phone.refresh_alarm_message()
 
-    def send_alarm_message_by_telegram(self):
+    def send_alarm_message(self):
         if not self.message:
             raise ValidationError('Message should not be empty.')
 
         telegram_utils.send_message(self.telegram_chat_id, self.message)
 
-    def voice_alarm_message_by_phone(self):
+    def voice_alarm_message(self):
         if not self.message:
             raise ValidationError('Message should not be empty.')
 
@@ -111,9 +107,9 @@ class TradePair:
 
     @property
     def thresholds_brakes_prices_str(self):
-        threshold_brake_prices = \
+        unseen_threshold_brake_prices = \
             self.unseen_threshold_brakes.order_by('happened_at').values_list('threshold__price', flat=True)
-        thresholds_brake_prices_str = ', '.join([f'{price}' for price in threshold_brake_prices])
+        thresholds_brake_prices_str = ', '.join([f'{price}' for price in unseen_threshold_brake_prices])
         return thresholds_brake_prices_str
 
     @property
