@@ -22,11 +22,11 @@ class Command(BaseCommand):
                 # TODO: update to include phones whose thresholds were marked as seen
                 affected_phones = {}
 
-                Phone.sync_alarm_messages_with_call_statuses()
                 binance_data = socket.recv()
+                # Placed here to be triggered first after pause caused by socket.recv()
+                Phone.stop_calling_if_call_succeed_for_each_phone()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
-
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
 
                 created_threshold_brakes = TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)

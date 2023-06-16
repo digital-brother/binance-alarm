@@ -23,45 +23,18 @@ class Phone(models.Model):
     def __str__(self):
         return str(self.number)
 
-    # TODO: make a property
     @classmethod
-    def get_ringing_phones(cls):
+    def get_calling_phones(cls):
         return cls.objects.exclude(ringing_twilio_call_sid='')
 
-    @property
-    def trade_pairs(self):
-        return self.thresholds.distinct().values_list('trade_pair', flat=True)
+    @classmethod
+    def stop_calling_if_call_succeed_for_each_phone(cls):
+        calling_phones = cls.get_calling_phones()
+        for phone in calling_phones:
+            phone.stop_calling_if_call_succeed()
 
-    @property
-    def unseen_threshold_brakes(self):
-        return ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
-
-    def get_trade_pair_unseen_threshold_brakes(self, trade_pair):
-        return self.unseen_threshold_brakes.filter(threshold__trade_pair=trade_pair)
-
-    @property
-    def alarm_message(self):
-        trade_pairs_alarm_messages = []
-
-        for trade_pair in self.trade_pairs:
-            trade_pair_unseen_threshold_brakes = TradePair(self, trade_pair).unseen_threshold_brakes
-            if trade_pair_unseen_threshold_brakes:
-                trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
-                trade_pairs_alarm_messages.append(trade_pair_alarm_message)
-
-        if not trade_pairs_alarm_messages:
-            return None
-
-        alarm_message = '\n'.join(trade_pairs_alarm_messages)
-        return alarm_message
-
-    def send_alarm_telegram_message(self):
-        if not self.alarm_message:
-            raise ValidationError('Message should not be empty.')
-
-        telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
-
-    def make_alarm_twilio_call(self):
+    def start_calling(self):
+        """Expected to """
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
@@ -69,6 +42,15 @@ class Phone(models.Model):
         self.ringing_twilio_call_sid = call_sid
         self.save()
         return call_sid
+
+    def stop_calling_if_call_succeed(self):
+        """
+        Also resets alarm messages: updates threshold brakes seen attribute,
+        based on which alarm message is built
+        """
+        if self.call_succeed:
+            self.reset_alarm_message()
+            self.stop_calling()
 
     @property
     def call_succeed(self):
@@ -86,25 +68,44 @@ class Phone(models.Model):
         else:
             raise ValidationError(f'Unknown status: {status}')
 
-    def mark_threshold_brakes_as_seen_if_call_succeed(self):
+    def reset_alarm_message(self):
         if self.call_succeed:
             logger.info(f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
             self.unseen_threshold_brakes.update(seen=True)
-            self.save()
-            return True
-        return False
 
     def stop_calling(self):
         self.ringing_twilio_call_sid = ''
         self.save()
 
-    @classmethod
-    def sync_alarm_messages_with_call_statuses(cls):
-        """Updates threshold brakes seen attribute, based on which alarm message is built"""
-        for phone in cls.get_ringing_phones():
-            call_succeed = phone.mark_threshold_brakes_as_seen_if_call_succeed()
-            if call_succeed:
-                phone.stop_calling()
+    def send_alarm_telegram_message(self):
+        if not self.alarm_message:
+            raise ValidationError('Message should not be empty.')
+
+        telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
+
+    @property
+    def trade_pairs(self):
+        return self.thresholds.distinct().values_list('trade_pair', flat=True)
+
+    @property
+    def unseen_threshold_brakes(self):
+        return ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
+
+    @property
+    def alarm_message(self):
+        trade_pairs_alarm_messages = []
+
+        for trade_pair in self.trade_pairs:
+            trade_pair_unseen_threshold_brakes = TradePair(self, trade_pair).unseen_threshold_brakes
+            if trade_pair_unseen_threshold_brakes:
+                trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
+                trade_pairs_alarm_messages.append(trade_pair_alarm_message)
+
+        if not trade_pairs_alarm_messages:
+            return None
+
+        alarm_message = '\n'.join(trade_pairs_alarm_messages)
+        return alarm_message
 
 
 class TradePair:
