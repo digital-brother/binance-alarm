@@ -6,7 +6,6 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm import telegram_utils
 from alarm.binance_utils import get_binance_valid_trade_pairs
 
 logger = logging.getLogger(f'{__name__}')
@@ -60,12 +59,6 @@ class Phone(models.Model):
         phones = cls.objects.all()
         for phone in phones:
             phone.refresh_alarm_message()
-
-    def send_telegram_message(self, message):
-        if not message:
-            raise ValidationError('Message should not be empty.')
-
-        telegram_utils.send_message(self.telegram_chat_id, message)
 
 
 class TradePair:
