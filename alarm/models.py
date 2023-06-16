@@ -19,6 +19,7 @@ class Phone(models.Model):
     telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
     message = models.TextField(null=True, blank=True)
+    active_twilio_call_sid = models.CharField(max_length=64)
 
     def __str__(self):
         return str(self.number)
@@ -71,10 +72,30 @@ class Phone(models.Model):
         if not self.message:
             raise ValidationError('Message should not be empty.')
 
-        twilio_utils.call(self.number, self.message)
+        call_sid = twilio_utils.call(self.number, self.message)
+        self.active_twilio_call_sid = call_sid
+        self.save()
 
-    def mark_threshold_brakes_as_seen(self):
-        self.unseen_threshold_brakes.update(seen=True)
+    @property
+    def call_succeed(self):
+        if not self.active_twilio_call_sid:
+            raise ValidationError("No active call found: active_twilio_call_sid is not set. ")
+
+        status = twilio_utils.get_call_status(self.active_twilio_call_sid)
+        pending_statuses = ['queued', 'initiated', 'ringing']
+        fail_statuses = ['busy', 'no-answer', 'canceled', 'failed']
+        success_statuses = ['in-progress', 'completed']
+        if status in pending_statuses + fail_statuses:
+            return False
+        elif status in success_statuses:
+            return True
+        else:
+            raise ValidationError(f'Unknown status: {status}')
+
+    def mark_threshold_brakes_as_seen_if_call_succeed(self):
+        if self.call_succeed:
+            self.unseen_threshold_brakes.update(seen=True)
+            self.active_twilio_call_sid = ''
 
 
 class TradePair:

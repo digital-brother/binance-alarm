@@ -8,9 +8,15 @@ client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
 
 
 def call(number, message):
-    client.calls.create(
+    call = client.calls.create(
         twiml=f'<Response><Say>{message}</Say></Response>',
         to=str(number),
         from_=settings.TWILIO_FROM_PHONE_NUMBER
     )
     logger.info(f"Twilio is calling {number}: '{message}'")
+    return call.sid
+
+
+def get_call_status(sid):
+    call = client.calls(sid).fetch()
+    return call.status
