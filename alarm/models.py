@@ -75,18 +75,8 @@ class TradePair:
 
     @property
     def display_name(self):
-        """
-        Gets Binance trade pair info by trade pair name,
-        returns 'base_asset/quote_asset' trade pair string representation
-        """
-        binance_valid_trade_pairs = get_binance_valid_trade_pairs()
-        trade_pair_info = binance_valid_trade_pairs.get(self.trade_pair)
-        if trade_pair_info is None:
-            raise ValueError(f"{self.trade_pair} is not a valid Binance trade pair.")
-
-        base_asset = trade_pair_info['baseAsset']
-        quote_asset = trade_pair_info['quoteAsset']
-        return f"{base_asset}/{quote_asset}"
+        display_name = self.trade_pair.replace('usdt', '').upper()
+        return display_name
 
     @property
     def close_price(self):
@@ -145,6 +135,10 @@ class Threshold(models.Model):
 
     def clean(self):
         super().clean()
+
+        # Optimized for performance to avoid requesting Binance API while getting a trade pair display name
+        if not self.trade_pair.endswith('usdt'):
+            raise ValidationError("Trade pair name should end with 'usdt'.")
 
         valid_trade_pairs = get_binance_valid_trade_pairs().keys()
         if self.trade_pair not in valid_trade_pairs:
