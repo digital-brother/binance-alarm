@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 from alarm.binance_utils import connect_binance_socket, \
     parse_candle_from_websocket_update
-from alarm.models import Threshold, Candle, TradePair
+from alarm.models import Threshold, Candle, TradePair, Phone
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -22,6 +22,7 @@ class Command(BaseCommand):
                 # TODO: update to include phones whose thresholds were marked as seen
                 affected_phones = {}
 
+                Phone.sync_alarm_messages_with_call_statuses()
                 binance_data = socket.recv()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)

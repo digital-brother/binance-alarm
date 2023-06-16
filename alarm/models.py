@@ -23,6 +23,11 @@ class Phone(models.Model):
     def __str__(self):
         return str(self.number)
 
+    # TODO: make a property
+    @classmethod
+    def get_ringing_phones(cls):
+        return cls.objects.exclude(ringing_twilio_call_sid='')
+
     @property
     def trade_pairs(self):
         return self.thresholds.distinct().values_list('trade_pair', flat=True)
@@ -85,8 +90,21 @@ class Phone(models.Model):
         if self.call_succeed:
             logger.info(f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
             self.unseen_threshold_brakes.update(seen=True)
-            self.ringing_twilio_call_sid = ''
             self.save()
+            return True
+        return False
+
+    def stop_calling(self):
+        self.ringing_twilio_call_sid = ''
+        self.save()
+
+    @classmethod
+    def sync_alarm_messages_with_call_statuses(cls):
+        """Updates threshold brakes seen attribute, based on which alarm message is built"""
+        for phone in cls.get_ringing_phones():
+            call_succeed = phone.mark_threshold_brakes_as_seen_if_call_succeed()
+            if call_succeed:
+                phone.stop_calling()
 
 
 class TradePair:
