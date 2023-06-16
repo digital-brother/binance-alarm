@@ -31,6 +31,10 @@ class Phone(models.Model):
     def threshold_brakes(self):
         return ThresholdBrake.objects.filter(threshold__phone__number=self.number)
 
+    @property
+    def unseen_threshold_brakes(self):
+        return ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
+
     def get_trade_pair_threshold_brakes(self, trade_pair):
         return self.threshold_brakes.filter(threshold__trade_pair=trade_pair)
 
@@ -39,7 +43,7 @@ class Phone(models.Model):
         trade_pairs_alarm_messages = []
 
         for trade_pair in self.trade_pairs:
-            trade_pair_threshold_brakes = TradePair(self, trade_pair).threshold_brakes
+            trade_pair_threshold_brakes = TradePair(self, trade_pair).unseen_threshold_brakes
             if trade_pair_threshold_brakes:
                 trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
                 trade_pairs_alarm_messages.append(trade_pair_alarm_message)
@@ -47,7 +51,7 @@ class Phone(models.Model):
         if not trade_pairs_alarm_messages:
             return None
 
-        alarm_message = ' '.join(trade_pairs_alarm_messages)
+        alarm_message = '\n'.join(trade_pairs_alarm_messages)
         return alarm_message
 
     def refresh_alarm_message(self):
@@ -73,6 +77,9 @@ class Phone(models.Model):
 
         twilio_utils.call(self.number, self.message)
 
+    def mark_threshold_brakes_as_seen(self):
+        self.unseen_threshold_brakes.update(seen=True)
+
 
 class TradePair:
     def __init__(self, phone, trade_pair):
@@ -80,8 +87,9 @@ class TradePair:
         self.trade_pair = trade_pair
 
     @property
-    def threshold_brakes(self):
-        return ThresholdBrake.objects.filter(threshold__phone=self.phone, threshold__trade_pair=self.trade_pair)
+    def unseen_threshold_brakes(self):
+        return ThresholdBrake.objects.filter(
+            threshold__phone=self.phone, threshold__trade_pair=self.trade_pair, seen=False)
 
     @property
     def thresholds(self):
@@ -104,7 +112,7 @@ class TradePair:
     @property
     def thresholds_brakes_prices_str(self):
         threshold_brake_prices = \
-            self.threshold_brakes.order_by('happened_at').values_list('threshold__price', flat=True)
+            self.unseen_threshold_brakes.order_by('happened_at').values_list('threshold__price', flat=True)
         thresholds_brake_prices_str = ', '.join([f'{price}' for price in threshold_brake_prices])
         return thresholds_brake_prices_str
 
@@ -182,11 +190,11 @@ class Threshold(models.Model):
         return False
 
     def create_threshold_brake_if_needed(self):
-        last_trade_pair_threshold_brake = TradePair(self.phone, self.trade_pair).threshold_brakes.last()
-        is_duplicate_threshold_brake = self == last_trade_pair_threshold_brake.threshold \
-            if last_trade_pair_threshold_brake else None
+        last_unseen_trade_pair_threshold_brake = TradePair(self.phone, self.trade_pair).unseen_threshold_brakes.last()
+        is_duplicate_threshold_brake = self == last_unseen_trade_pair_threshold_brake.threshold \
+            if last_unseen_trade_pair_threshold_brake else None
         if is_duplicate_threshold_brake:
-            return last_trade_pair_threshold_brake, False
+            return last_unseen_trade_pair_threshold_brake, False
         ThresholdBrake.objects.create(threshold=self)
 
 
@@ -228,9 +236,9 @@ class Candle(models.Model):
 
 
 class ThresholdBrake(models.Model):
-    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='threshold_brakes')
+    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='unseen_threshold_brakes')
     happened_at = models.DateTimeField(auto_now_add=True)
-    user_notified = models.BooleanField(default=False)
+    seen = models.BooleanField(default=False)
 
     def __str__(self):
         happened_at_str = self.happened_at.strftime('%Y-%m-%d %H:%M')

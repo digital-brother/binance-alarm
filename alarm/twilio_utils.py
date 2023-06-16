@@ -11,6 +11,6 @@ def call(number, message):
     client.calls.create(
         twiml=f'<Response><Say>{message}</Say></Response>',
         to=str(number),
-        from_='+441156472424'
+        from_=settings.TWILIO_FROM_PHONE_NUMBER
     )
     logger.info(f"Twilio is calling {number}: '{message}'")

@@ -21,6 +21,7 @@ class PhoneFactory(DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     number = factory.Sequence(lambda n: f"+38 123 456 78 {n}")
+    telegram_chat_id = factory.Sequence(lambda n: f"telegram_user_{n}")
 
 
 class CandleFactory(DjangoModelFactory):
