@@ -90,7 +90,7 @@ class TradePair:
     @property
     def thresholds_brakes_prices_str(self):
         threshold_brake_prices = \
-            self.threshold_brakes.order_by('-happened_at').values_list('threshold__price', flat=True)
+            self.threshold_brakes.order_by('happened_at').values_list('threshold__price', flat=True)
         thresholds_brake_prices_str = ', '.join([f'{price}' for price in threshold_brake_prices])
         return thresholds_brake_prices_str
 

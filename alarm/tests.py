@@ -48,7 +48,7 @@ class TestThresholdIsBroken:
 
 class TestCreateThresholdBrake:
     def test__create_threshold_brake__threshold_broken(self):
-        trade_pair = 'lunausdt'
+        trade_pair = 'LUNAUSDT'
         threshold = ThresholdFactory(price=Decimal('10.00'), trade_pair=trade_pair)
         CandleFactory(low_price=Decimal('9.00'), high_price=Decimal('11.00'), trade_pair=trade_pair)
         TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
@@ -57,16 +57,23 @@ class TestCreateThresholdBrake:
 
 
     def test__create_threshold_brake__does_not_create_duplicate(self):
-        trade_pair = 'lunausdt'
+        trade_pair = 'LUNAUSDT'
         threshold = ThresholdFactory(price=Decimal('10.00'), trade_pair=trade_pair)
         CandleFactory(low_price=Decimal('9.00'), high_price=Decimal('11.00'), trade_pair=trade_pair)
-        ThresholdBrakeFactory(threshold=threshold)
+        TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
         TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
         assert ThresholdBrake.objects.count() == 1
-
+        
+    def test__create_threshold_brake__does_not_create_duplicate_for_two_thresholds(self, threshold):
+        trade_pair = 'LUNAUSDT'
+        ThresholdFactory(price=Decimal('12.00'), trade_pair=threshold.trade_pair, phone=threshold.phone)
+        CandleFactory(low_price=Decimal('8.00'), high_price=Decimal('14.00'), trade_pair=trade_pair)
+        TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
+        TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
+        assert ThresholdBrake.objects.count() == 2
 
     def test__create_threshold_brake__threshold_not_broken(self):
-        trade_pair = 'lunausdt'
+        trade_pair = 'LUNAUSDT'
         ThresholdFactory(price=Decimal('10.00'), trade_pair=trade_pair)
         CandleFactory(low_price=Decimal('8.00'), high_price=Decimal('9.00'), trade_pair=trade_pair)
         TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
@@ -75,7 +82,7 @@ class TestCreateThresholdBrake:
 
 class TestTradePairAlarmMessage:
     def test__trade_pair_alarm_message__no_threshold_brakes(self, phone):
-        trade_pair_obj = TradePair(phone=phone, trade_pair='lunausdt')
+        trade_pair_obj = TradePair(phone=phone, trade_pair='LUNAUSDT')
         assert trade_pair_obj.alarm_message is None
 
     def test__trade_pair_alarm_message__single_threshold_brake(self):
@@ -147,7 +154,7 @@ def test__create_threshold_brakes_and_get_alarm_message():
     TradePair.create_thresholds_brakes_from_recent_candles_update(second_trade_pair)
     assert ThresholdBrake.objects.count() == 4
     assert threshold.phone.alarm_message == \
-           'LUNA broken thresholds 12.00, 10.00 and the current LUNA price is 12.00.\n' \
+           'LUNA broken thresholds 10.00, 12.00 and the current LUNA price is 12.00.\n' \
            'WING broken thresholds 25.00 and the current WING price is 25.00.'
 
 
