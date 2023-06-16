@@ -18,7 +18,6 @@ class Phone(models.Model):
     number = PhoneNumberField(blank=True, unique=True, region='UA')
     telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
-    message = models.TextField(null=True, blank=True)
     active_twilio_call_sid = models.CharField(max_length=64)
 
     def __str__(self):
@@ -51,28 +50,17 @@ class Phone(models.Model):
         alarm_message = '\n'.join(trade_pairs_alarm_messages)
         return alarm_message
 
-    def refresh_alarm_message(self):
-        self.message = self.alarm_message
-        self.save()
-
-    # TODO: Remove an unused method
-    @classmethod
-    def refresh_alarm_messages_for_all_phones(cls):
-        phones = cls.objects.all()
-        for phone in phones:
-            phone.refresh_alarm_message()
-
     def send_alarm_message(self):
-        if not self.message:
+        if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
-        telegram_utils.send_message(self.telegram_chat_id, self.message)
+        telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
 
     def voice_alarm_message(self):
-        if not self.message:
+        if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
-        call_sid = twilio_utils.call(self.number, self.message)
+        call_sid = twilio_utils.call(self.number, self.alarm_message)
         self.active_twilio_call_sid = call_sid
         self.save()
         return call_sid
