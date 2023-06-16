@@ -1,9 +1,11 @@
-import logging
+import asyncio
+import telegram
 
-from alarm.models import TradePair
+bot = telegram.Bot("6182875242:AAHoyBE5VErdAyu_S2XozzcOn2Jo4180EW8")
 
-logger = logging.getLogger(f'{__name__}')
 
+def send_message(chat_id, message):
+    asyncio.run(bot.send_message(chat_id, message))
 
 def get_message_with_twiml_elements_for_threshold_break(phone, trade_pair):
     message = TradePair(phone, trade_pair).alarm_message()

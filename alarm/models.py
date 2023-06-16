@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
+from alarm import telegram_utils
 from alarm.binance_utils import get_binance_valid_trade_pairs
 
 logger = logging.getLogger(f'{__name__}')
@@ -13,8 +14,9 @@ User = get_user_model()
 
 
 class Phone(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='phones')
     number = PhoneNumberField(blank=True, unique=True, region='UA')
+    telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
     message = models.TextField(null=True, blank=True)
 
@@ -58,6 +60,12 @@ class Phone(models.Model):
         phones = cls.objects.all()
         for phone in phones:
             phone.refresh_alarm_message()
+
+    def send_telegram_message(self, message):
+        if not message:
+            raise ValidationError('Message should not be empty.')
+
+        telegram_utils.send_message(self.telegram_chat_id, message)
 
 
 class TradePair:
@@ -143,12 +151,12 @@ class Threshold(models.Model):
 
         # Optimized for performance to avoid requesting Binance API while getting a trade pair display name
         if not self.trade_pair.endswith('USDT'):
-            raise ValidationError("Trade pair name should end with 'usdt'.")
+            raise ValidationError("Trade pair name should end with 'USDT'. For example, ETHUSDT.")
 
         valid_trade_pairs = get_binance_valid_trade_pairs().keys()
         if self.trade_pair not in valid_trade_pairs:
             raise ValidationError(
-                f"{self.trade_pair} is not a valid coin abbreviation. For example, ethusdt or ethbtc.")
+                f"{self.trade_pair} is not a valid coin abbreviation. For example, ETHUSDT.")
 
     @property
     def trade_pair_obj(self):
