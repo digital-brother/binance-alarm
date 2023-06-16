@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from alarm.binance_utils import connect_binance_socket, \
     parse_candle_from_websocket_update
 from alarm.models import Threshold, Candle, TradePair
-from alarm.utils import make_call
+from alarm.telegram_utils import make_call
 
 logger = logging.getLogger(f'{__name__}')
 
