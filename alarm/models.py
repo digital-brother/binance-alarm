@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from phonenumber_field.modelfields import PhoneNumberField
 
-from alarm import telegram_utils
+from alarm import telegram_utils, twilio_utils
 from alarm.binance_utils import get_binance_valid_trade_pairs
 
 logger = logging.getLogger(f'{__name__}')
@@ -47,11 +47,11 @@ class Phone(models.Model):
         if not trade_pairs_alarm_messages:
             return None
 
-        alarm_message = '\n'.join(trade_pairs_alarm_messages)
+        alarm_message = ' '.join(trade_pairs_alarm_messages)
         return alarm_message
 
     def refresh_alarm_message(self):
-        self.message = self.alarm_message()
+        self.message = self.alarm_message
         self.save()
 
     # TODO: Remove an unused method
@@ -61,11 +61,17 @@ class Phone(models.Model):
         for phone in phones:
             phone.refresh_alarm_message()
 
-    def send_telegram_message(self, message):
-        if not message:
+    def send_alarm_message_by_telegram(self):
+        if not self.message:
             raise ValidationError('Message should not be empty.')
 
-        telegram_utils.send_message(self.telegram_chat_id, message)
+        telegram_utils.send_message(self.telegram_chat_id, self.message)
+
+    def voice_alarm_message_by_phone(self):
+        if not self.message:
+            raise ValidationError('Message should not be empty.')
+
+        twilio_utils.call(self.number, self.message)
 
 
 class TradePair:
