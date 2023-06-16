@@ -124,3 +124,8 @@ class TestPhoneAlarmMessage:
         assert threshold_brake.threshold.phone.alarm_message == \
                'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.\n' \
                'WING broken thresholds 20.00 and the current WING price is 24.00.'
+
+    def test__phone_alarm_message__another_phone_trade_pair_broken(self, threshold_brake, candle):
+        ThresholdBrakeFactory()
+        assert threshold_brake.threshold.phone.alarm_message == \
+               'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.'

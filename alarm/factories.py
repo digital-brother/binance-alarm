@@ -12,12 +12,15 @@ class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
 
+    username = factory.Sequence(lambda n: f"user_{n}")
+
 
 class PhoneFactory(DjangoModelFactory):
     class Meta:
         model = Phone
 
     user = factory.SubFactory(UserFactory)
+    number = factory.Sequence(lambda n: f"+38 123 456 78 {n}")
 
 
 class CandleFactory(DjangoModelFactory):
