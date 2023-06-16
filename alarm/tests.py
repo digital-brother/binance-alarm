@@ -129,3 +129,25 @@ class TestPhoneAlarmMessage:
         ThresholdBrakeFactory()
         assert threshold_brake.threshold.phone.alarm_message == \
                'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.'
+
+
+def test__create_threshold_brakes_and_get_alarm_message():
+    second_trade_pair = 'WINGUSDT'
+    threshold = ThresholdFactory(price=decimal.Decimal(10.00))
+    # Second trade pair threshold
+    ThresholdFactory(price=decimal.Decimal(12.00), trade_pair=threshold.trade_pair, phone=threshold.phone)
+    # Second trade pair threshold
+    ThresholdFactory(trade_pair=second_trade_pair, price=decimal.Decimal(25.00), phone=threshold.phone)
+    # Another phone threshold
+    ThresholdFactory(price=decimal.Decimal(14.00), trade_pair=threshold.trade_pair)
+
+    CandleFactory(low_price=decimal.Decimal(8.00), high_price=decimal.Decimal(16.00))
+    CandleFactory(trade_pair=second_trade_pair, low_price=decimal.Decimal(21.00), high_price=decimal.Decimal(29.00))
+    TradePair.create_thresholds_brakes_from_recent_candles_update(threshold.trade_pair)
+    TradePair.create_thresholds_brakes_from_recent_candles_update(second_trade_pair)
+    assert ThresholdBrake.objects.count() == 4
+    assert threshold.phone.alarm_message == \
+           'LUNA broken thresholds 12.00, 10.00 and the current LUNA price is 12.00.\n' \
+           'WING broken thresholds 25.00 and the current WING price is 25.00.'
+
+
