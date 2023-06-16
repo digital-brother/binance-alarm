@@ -23,59 +23,33 @@ class Phone(models.Model):
     def __str__(self):
         return str(self.number)
 
-    @classmethod
-    def get_calling_phones(cls):
-        return cls.objects.exclude(ringing_twilio_call_sid='')
+    def sync_alarm_message_with_previous_call_results(self):
+        """Syncs alarm message with results of a previous call, as if no any calls were done previously."""
+        has_previous_call = bool(self.ringing_twilio_call_sid)
+        if has_previous_call and twilio_utils.call_succeed(self.ringing_twilio_call_sid):
+            logger.info(
+                f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
+            # A marking of threshold brakes as seen resets an alarm message
+            # as an alarm message is built based on unseen threshold brakes
+            self.unseen_threshold_brakes.update(seen=True)
+            self.ringing_twilio_call_sid = ''
+            self.save()
 
-    @classmethod
-    def stop_calling_if_call_succeed_for_each_phone(cls):
-        calling_phones = cls.get_calling_phones()
-        for phone in calling_phones:
-            phone.stop_calling_if_call_succeed()
-
-    def start_calling(self):
-        """Expected to """
+    def call(self):
+        """
+        Makes a call and communicates an alarm message from a clean DB state, i.e. as if no any calls were done before.
+        Supposed to be used in a combination with sync_alarm_message_with_previous_call_results.
+        """
         if not self.alarm_message:
-            raise ValidationError('Message should not be empty.')
+            raise ValidationError('Alarm message should not be empty.')
+
+        if self.ringing_twilio_call_sid:
+            raise ValidationError('Alarm message is not synced with results of a previous call')
 
         call_sid = twilio_utils.call(self.number, self.alarm_message)
         self.ringing_twilio_call_sid = call_sid
         self.save()
         return call_sid
-
-    def stop_calling_if_call_succeed(self):
-        """
-        Also resets alarm messages: updates threshold brakes seen attribute,
-        based on which alarm message is built
-        """
-        if self.call_succeed:
-            self.reset_alarm_message()
-            self.stop_calling()
-
-    @property
-    def call_succeed(self):
-        if not self.ringing_twilio_call_sid:
-            raise ValidationError("No active call found: ringing_twilio_call_sid is not set. ")
-
-        status = twilio_utils.get_call_status(self.ringing_twilio_call_sid)
-        user_did_not_answer_yet_statuses = ['queued', 'initiated', 'ringing']
-        user_skipped_call_statuses = ['no-answer', 'canceled', 'failed']
-        user_reacted_statuses = ['in-progress', 'completed', 'busy']
-        if status in user_did_not_answer_yet_statuses + user_skipped_call_statuses:
-            return False
-        elif status in user_reacted_statuses:
-            return True
-        else:
-            raise ValidationError(f'Unknown status: {status}')
-
-    def reset_alarm_message(self):
-        if self.call_succeed:
-            logger.info(f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
-            self.unseen_threshold_brakes.update(seen=True)
-
-    def stop_calling(self):
-        self.ringing_twilio_call_sid = ''
-        self.save()
 
     def send_alarm_telegram_message(self):
         if not self.alarm_message:
