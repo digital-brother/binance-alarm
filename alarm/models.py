@@ -50,13 +50,13 @@ class Phone(models.Model):
         alarm_message = '\n'.join(trade_pairs_alarm_messages)
         return alarm_message
 
-    def send_alarm_message(self):
+    def send_alarm_telegram_message(self):
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
         telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
 
-    def voice_alarm_message(self):
+    def make_alarm_twilio_call(self):
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
@@ -83,8 +83,10 @@ class Phone(models.Model):
 
     def mark_threshold_brakes_as_seen_if_call_succeed(self):
         if self.call_succeed:
+            logger.info(f"User {self.user} was alarmed by phone {self.number} (call_sid={self.active_twilio_call_sid})")
             self.unseen_threshold_brakes.update(seen=True)
             self.active_twilio_call_sid = ''
+            self.save()
 
 
 class TradePair:
