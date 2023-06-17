@@ -15,7 +15,12 @@ class PhoneAdmin(admin.ModelAdmin):
 # TODO: Make trade pair to be entered with no USDT prefix
 class ThresholdBrakeAdmin(admin.ModelAdmin):
     model = ThresholdBrake
-    readonly_fields = ['id', 'threshold_id', 'happened_at', 'seen']
+    readonly_fields = ['id', 'threshold_id', 'happened_at']
+    list_display = ['__str__', 'phone']
+
+    @admin.display(description="Phone")
+    def phone(self, obj):
+        return obj.threshold.phone
 
 
 admin.site.register(Phone, PhoneAdmin)

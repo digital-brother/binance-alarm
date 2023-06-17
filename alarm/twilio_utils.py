@@ -18,7 +18,9 @@ def call(number, message):
     return call.sid
 
 
-def call_succeed(sid):
+def call_status(sid):
+    from alarm.models import CallStatus
+
     if not sid:
         raise ValidationError("No active call found: ringing_twilio_call_sid is not set. ")
 
@@ -28,9 +30,11 @@ def call_succeed(sid):
     call_pending_statuses = ['queued', 'initiated', 'ringing']
     call_skipped_statuses = ['no-answer', 'canceled', 'failed']
 
-    if call.status in call_pending_statuses + call_skipped_statuses:
-        return False
+    if call.status in call_pending_statuses:
+        return CallStatus.PENDING
+    elif call.status in call_skipped_statuses:
+        return CallStatus.SKIPPED
     elif call.status in call_succeed_statuses:
-        return True
+        return CallStatus.SUCCEED
     else:
         raise ValidationError(f'Unknown status: {call.status}')

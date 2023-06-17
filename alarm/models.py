@@ -13,6 +13,12 @@ logger = logging.getLogger(f'{__name__}')
 User = get_user_model()
 
 
+class CallStatus(models.TextChoices):
+    SUCCEED = 'succeed'
+    PENDING = 'pending'
+    SKIPPED = 'skipped'
+
+
 class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='phones')
     number = PhoneNumberField(blank=True, unique=True, region='UA')
@@ -25,17 +31,26 @@ class Phone(models.Model):
 
     @classmethod
     def sync_all_suitable_phones_alarm_messages(cls):
-        phones_needing_sync = cls.objects.exclude(ringing_twilio_call_sid='')
-        for phone in phones_needing_sync:
+        for phone in cls.get_needing_sync_phones():
             phone.sync_alarm_message_with_previous_call_results()
 
+    @classmethod
+    def get_needing_sync_phones(cls):
+        return cls.objects.exclude(ringing_twilio_call_sid='')
+
     def sync_alarm_message_with_previous_call_results(self):
-        """Syncs alarm message with results of a previous call, as if no any calls were done previously."""
+        """
+        Syncs alarm message with results of a previous call, as if no any calls were done previously.
+        If call succeed - resets alarm messages and removes a previous call info.
+        If call was skipped - just removes a previous call info (equals to recall).
+        If call is pending - keeps a call as a previous call.
+        """
 
         if not self.ringing_twilio_call_sid:
             raise ValidationError("Method should be called only after phone call was done and still not synced")
 
-        if twilio_utils.call_succeed(self.ringing_twilio_call_sid):
+        call_status = twilio_utils.call_status(self.ringing_twilio_call_sid)
+        if call_status == CallStatus.SUCCEED:
             logger.info(
                 f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
             # A marking of threshold brakes as seen resets an alarm message
@@ -43,12 +58,18 @@ class Phone(models.Model):
             self.unseen_threshold_brakes.update(seen=True)
             self.ringing_twilio_call_sid = ''
             self.save()
+        elif call_status == CallStatus.SKIPPED:
+            self.ringing_twilio_call_sid = ''
+            self.save()
 
     @classmethod
-    def call_or_recall_all_suitable_phones(cls):
-        phones_needing_call = cls.objects.filter(ringing_twilio_call_sid='')
-        for phone in phones_needing_call:
+    def call_all_suitable_phones(cls):
+        for phone in cls.get_needing_call_phones():
             phone.call()
+
+    @classmethod
+    def get_needing_call_phones(cls):
+        return [phone for phone in cls.objects.filter(ringing_twilio_call_sid='') if phone.unseen_threshold_brakes]
 
     def call(self):
         """

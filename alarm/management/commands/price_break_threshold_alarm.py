@@ -20,7 +20,7 @@ class Command(BaseCommand):
         try:
             while True:
                 # TODO: update to include phones whose thresholds were marked as seen
-                affected_phones = {}
+                affected_phones = set()
 
                 binance_data = socket.recv()
                 # Placed here to be triggered first after pause caused by socket.recv()
@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 # Phone logic
                 # Placed here to be triggered after alarm message is updated due to
                 # a previous call status sync and new candles data
-                Phone.call_or_recall_all_suitable_phones()
+                Phone.call_all_suitable_phones()
 
                 # TODO: recheck logic
                 # Check if new trade pair appear in the database
