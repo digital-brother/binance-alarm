@@ -1,7 +1,10 @@
+from unittest.mock import patch, Mock
+
 import decimal
 
 import pytest
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 from pytest_factoryboy import register
 
 from alarm.factories import ThresholdFactory, CandleFactory, ThresholdBrakeFactory, PhoneFactory, UserFactory
@@ -63,7 +66,7 @@ class TestCreateThresholdBrake:
         TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
         TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
         assert ThresholdBrake.objects.count() == 1
-        
+
     def test__create_threshold_brake__does_not_create_duplicate_for_two_thresholds(self, threshold):
         trade_pair = 'LUNAUSDT'
         ThresholdFactory(price=Decimal('12.00'), trade_pair=threshold.trade_pair, phone=threshold.phone)
@@ -156,5 +159,30 @@ def test__create_threshold_brakes_and_get_alarm_message():
     assert threshold.phone.alarm_message == \
            'LUNA broken thresholds 10.00, 12.00 and the current LUNA price is 12.00.\n' \
            'WING broken thresholds 25.00 and the current WING price is 25.00.'
+
+
+class TestPhoneCall:
+    @pytest.mark.xfail(ValidationError)
+    def test__call__no_alarm_message(self, phone):
+        phone.call()
+
+    @pytest.mark.xfail(ValidationError)
+    @patch('alarm.models.twilio_utils.call', Mock(return_value='twilio_sid'))
+    def test__call__alarm_message_not_synced(self, threshold_brake):
+        phone = threshold_brake.threshold.phone
+        phone.call()
+        phone.call()
+
+    @pytest.mark.xfail(ValidationError)
+    def test__sync_alarm_message_with_previous_call_results__no_previous_call(self, phone):
+        phone.sync_alarm_message_with_previous_call_results()
+
+    @patch('alarm.models.twilio_utils.call', Mock(return_value='twilio_sid'))
+    @patch('alarm.models.twilio_utils.call_succeed', Mock(return_value=True))
+    def test__sync_alarm_message_with_previous_call_results__alarm_message_reset(self, threshold_brake):
+        phone = threshold_brake.threshold.phone
+        phone.call()
+        phone.sync_alarm_message_with_previous_call_results()
+        assert phone.alarm_message is None
 
 

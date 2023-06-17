@@ -25,8 +25,11 @@ class Phone(models.Model):
 
     def sync_alarm_message_with_previous_call_results(self):
         """Syncs alarm message with results of a previous call, as if no any calls were done previously."""
-        has_previous_call = bool(self.ringing_twilio_call_sid)
-        if has_previous_call and twilio_utils.call_succeed(self.ringing_twilio_call_sid):
+
+        if not self.ringing_twilio_call_sid:
+            raise ValidationError("Method should be called only after phone call was done and still not synced")
+
+        if twilio_utils.call_succeed(self.ringing_twilio_call_sid):
             logger.info(
                 f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
             # A marking of threshold brakes as seen resets an alarm message
