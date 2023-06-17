@@ -24,7 +24,7 @@ class Phone(models.Model):
         return str(self.number)
 
     @classmethod
-    def sync_all_phones_alarm_messages(cls):
+    def sync_all_suitable_phones_alarm_messages(cls):
         phones_needing_sync = cls.objects.exclude(ringing_twilio_call_sid='')
         for phone in phones_needing_sync:
             phone.sync_alarm_message_with_previous_call_results()
@@ -43,6 +43,12 @@ class Phone(models.Model):
             self.unseen_threshold_brakes.update(seen=True)
             self.ringing_twilio_call_sid = ''
             self.save()
+
+    @classmethod
+    def call_or_recall_all_suitable_phones(cls):
+        phones_needing_call = cls.objects.filter(ringing_twilio_call_sid='')
+        for phone in phones_needing_call:
+            phone.call()
 
     def call(self):
         """
