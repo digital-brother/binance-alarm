@@ -23,14 +23,14 @@ def call_succeed(sid):
         raise ValidationError("No active call found: ringing_twilio_call_sid is not set. ")
 
     call = client.calls(sid).fetch()
+    # Busy means that user saw a call and checked alarm message via Telegram
+    call_succeed_statuses = ['in-progress', 'completed', 'busy']
+    call_pending_statuses = ['queued', 'initiated', 'ringing']
+    call_skipped_statuses = ['no-answer', 'canceled', 'failed']
 
-    user_did_not_answer_yet_statuses = ['queued', 'initiated', 'ringing']
-    user_skipped_call_statuses = ['no-answer', 'canceled', 'failed']
-    user_reacted_statuses = ['in-progress', 'completed', 'busy']
-
-    if call.status in user_did_not_answer_yet_statuses + user_skipped_call_statuses:
+    if call.status in call_pending_statuses + call_skipped_statuses:
         return False
-    elif call.status in user_reacted_statuses:
+    elif call.status in call_succeed_statuses:
         return True
     else:
         raise ValidationError(f'Unknown status: {call.status}')

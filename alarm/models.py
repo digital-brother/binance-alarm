@@ -23,6 +23,12 @@ class Phone(models.Model):
     def __str__(self):
         return str(self.number)
 
+    @classmethod
+    def sync_all_phones_alarm_messages(cls):
+        phones_needing_sync = cls.objects.exclude(ringing_twilio_call_sid='')
+        for phone in phones_needing_sync:
+            phone.sync_alarm_message_with_previous_call_results()
+
     def sync_alarm_message_with_previous_call_results(self):
         """Syncs alarm message with results of a previous call, as if no any calls were done previously."""
 
