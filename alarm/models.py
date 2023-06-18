@@ -37,7 +37,7 @@ class Phone(models.Model):
 
     @classmethod
     def get_needing_sync_phones(cls):
-        return cls.objects.exclude(ringing_twilio_call_sid='')
+        return cls.objects.exclude(twilio_call_sid='')
 
     @classmethod
     def call_all_suitable_phones(cls):
@@ -46,7 +46,7 @@ class Phone(models.Model):
 
     @classmethod
     def get_needing_call_phones(cls):
-        return [phone for phone in cls.objects.filter(ringing_twilio_call_sid='') if phone.unseen_threshold_brakes]
+        return [phone for phone in cls.objects.filter(twilio_call_sid='') if phone.unseen_threshold_brakes]
 
     def call(self):
         """
