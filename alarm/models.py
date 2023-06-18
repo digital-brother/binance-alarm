@@ -31,22 +31,22 @@ class Phone(models.Model):
         return str(self.number)
 
     @classmethod
-    def sync_all_suitable_phones_alarm_messages(cls):
-        for phone in cls.get_needing_sync_phones():
-            phone.sync_alarm_message_with_previous_call_results()
-
-    @classmethod
-    def get_needing_sync_phones(cls):
-        return cls.objects.exclude(twilio_call_sid='')
-
-    @classmethod
     def call_all_suitable_phones(cls):
         for phone in cls.get_needing_call_phones():
             phone.call()
 
     @classmethod
+    def sync_all_suitable_phones_alarm_messages(cls):
+        for phone in cls.get_needing_sync_phones():
+            phone.sync_alarm_message_with_previous_call_results()
+
+    @classmethod
     def get_needing_call_phones(cls):
         return [phone for phone in cls.objects.filter(twilio_call_sid='') if phone.unseen_threshold_brakes]
+
+    @classmethod
+    def get_needing_sync_phones(cls):
+        return cls.objects.exclude(twilio_call_sid='')
 
     def call(self):
         """
