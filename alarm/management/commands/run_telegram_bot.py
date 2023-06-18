@@ -19,7 +19,7 @@ async def button_pressed_handler(update: Update, context: ContextTypes.DEFAULT_T
 def run_telegram_bot():
     application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CallbackQueryHandler(button_pressed_handler))
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(allowed_updates=Update.CALLBACK_QUERY)
 
 
 class Command(BaseCommand):
