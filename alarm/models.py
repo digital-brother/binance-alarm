@@ -25,6 +25,7 @@ class Phone(models.Model):
     telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
     twilio_call_sid = models.CharField(max_length=64)
+    telegram_message_id = models.PositiveBigIntegerField(null=True)
 
     def __str__(self):
         return str(self.number)
