@@ -84,9 +84,7 @@ class Phone(models.Model):
                 f"User {self.user} was alarmed by phone {self.number} (call_sid={self.twilio_call_sid})")
             # A marking of threshold brakes as seen resets an alarm message
             # as an alarm message is built based on unseen threshold brakes
-            self.unseen_threshold_brakes.update(seen=True)
-            self.twilio_call_sid = None
-            self.save()
+            self.mark_threshold_brakes_as_seen()
         elif call_status == CallStatus.SKIPPED:
             self.twilio_call_sid = None
             self.save()
@@ -94,6 +92,10 @@ class Phone(models.Model):
     def send_alarm_telegram_message(self):
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
+
+        if self.telegram_message_id:
+            raise ValidationError('Telegram message is already exists and is still unseen.'
+                                  'Use update_alarm_telegram_message() method instead.')
 
         message_id = telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
         self.telegram_message_id = message_id
@@ -104,10 +106,17 @@ class Phone(models.Model):
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
+        if not self.telegram_message_id:
+            raise ValidationError('Telegram message does not exist. Use send_alarm_telegram_message() instead.')
+
         telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, self.alarm_message)
 
     def mark_threshold_brakes_as_seen(self):
         self.unseen_threshold_brakes.update(seen=True)
+
+        message = f"{self.alarm_message}\n\nBot paused for 1 hour."
+        telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, message)
+
         self.telegram_message_id = None
         self.twilio_call_sid = None
         self.save()
