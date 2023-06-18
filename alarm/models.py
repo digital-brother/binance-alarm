@@ -24,7 +24,7 @@ class Phone(models.Model):
     number = PhoneNumberField(blank=True, unique=True, region='UA')
     telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
-    ringing_twilio_call_sid = models.CharField(max_length=64)
+    twilio_call_sid = models.CharField(max_length=64)
 
     def __str__(self):
         return str(self.number)
@@ -49,20 +49,20 @@ class Phone(models.Model):
         till event was caught by Django.
         """
 
-        if not self.ringing_twilio_call_sid:
+        if not self.twilio_call_sid:
             raise ValidationError("Method should be called only after phone call was done and still not synced")
 
-        call_status = twilio_utils.call_status(self.ringing_twilio_call_sid)
+        call_status = twilio_utils.call_status(self.twilio_call_sid)
         if call_status == CallStatus.SUCCEED:
             logger.info(
-                f"User {self.user} was alarmed by phone {self.number} (call_sid={self.ringing_twilio_call_sid})")
+                f"User {self.user} was alarmed by phone {self.number} (call_sid={self.twilio_call_sid})")
             # A marking of threshold brakes as seen resets an alarm message
             # as an alarm message is built based on unseen threshold brakes
             self.unseen_threshold_brakes.update(seen=True)
-            self.ringing_twilio_call_sid = ''
+            self.twilio_call_sid = ''
             self.save()
         elif call_status == CallStatus.SKIPPED:
-            self.ringing_twilio_call_sid = ''
+            self.twilio_call_sid = ''
             self.save()
 
     @classmethod
@@ -82,11 +82,11 @@ class Phone(models.Model):
         if not self.alarm_message:
             raise ValidationError('Alarm message should not be empty.')
 
-        if self.ringing_twilio_call_sid:
+        if self.twilio_call_sid:
             raise ValidationError('Alarm message is not synced with results of a previous call')
 
         call_sid = twilio_utils.call(self.number, self.alarm_message)
-        self.ringing_twilio_call_sid = call_sid
+        self.twilio_call_sid = call_sid
         self.save()
         return call_sid
 

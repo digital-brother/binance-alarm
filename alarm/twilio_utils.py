@@ -22,7 +22,7 @@ def call_status(sid):
     from alarm.models import CallStatus
 
     if not sid:
-        raise ValidationError("No active call found: ringing_twilio_call_sid is not set. ")
+        raise ValidationError("No active call found: twilio_call_sid is not set. ")
 
     call = client.calls(sid).fetch()
     # Busy means that user saw a call and checked alarm message via Telegram
