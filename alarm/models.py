@@ -44,6 +44,9 @@ class Phone(models.Model):
         If call succeed - resets alarm messages and removes a previous call info.
         If call was skipped - just removes a previous call info (equals to recall).
         If call is pending - keeps a call as a previous call.
+
+        Discards all thresholds brakes happened after 'Receive call' button was pressed on phone
+        till event was caught by Django.
         """
 
         if not self.ringing_twilio_call_sid:
