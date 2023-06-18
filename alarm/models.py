@@ -24,7 +24,7 @@ class Phone(models.Model):
     number = PhoneNumberField(blank=True, unique=True, region='UA')
     telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
-    twilio_call_sid = models.CharField(max_length=64)
+    twilio_call_sid = models.CharField(max_length=64, null=True)
     telegram_message_id = models.PositiveBigIntegerField(null=True)
 
     def __str__(self):
@@ -42,11 +42,11 @@ class Phone(models.Model):
 
     @classmethod
     def get_needing_call_phones(cls):
-        return [phone for phone in cls.objects.filter(twilio_call_sid='') if phone.unseen_threshold_brakes]
+        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=True) if phone.unseen_threshold_brakes]
 
     @classmethod
     def get_needing_sync_phones(cls):
-        return cls.objects.exclude(twilio_call_sid='')
+        return cls.objects.exclude(twilio_call_sid__isnull=True)
 
     def call(self):
         """
@@ -85,10 +85,10 @@ class Phone(models.Model):
             # A marking of threshold brakes as seen resets an alarm message
             # as an alarm message is built based on unseen threshold brakes
             self.unseen_threshold_brakes.update(seen=True)
-            self.twilio_call_sid = ''
+            self.twilio_call_sid = None
             self.save()
         elif call_status == CallStatus.SKIPPED:
-            self.twilio_call_sid = ''
+            self.twilio_call_sid = None
             self.save()
 
     def send_alarm_telegram_message(self):
@@ -106,9 +106,10 @@ class Phone(models.Model):
 
         telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, self.alarm_message)
 
-    def handle_telegram_message_read_event(self):
+    def mark_threshold_brakes_as_seen(self):
         self.unseen_threshold_brakes.update(seen=True)
         self.telegram_message_id = None
+        self.twilio_call_sid = None
         self.save()
 
     @property

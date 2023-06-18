@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from pytest_factoryboy import register
 
 from alarm.factories import ThresholdFactory, CandleFactory, ThresholdBrakeFactory, PhoneFactory, UserFactory
-from alarm.models import TradePair, ThresholdBrake
+from alarm.models import TradePair, ThresholdBrake, CallStatus
 
 pytestmark = pytest.mark.django_db
 
@@ -178,7 +178,7 @@ class TestPhoneCall:
         phone.sync_alarm_message_with_previous_call_results()
 
     @patch('alarm.models.twilio_utils.call', Mock(return_value='twilio_sid'))
-    @patch('alarm.models.twilio_utils.call_status', Mock(return_value=True))
+    @patch('alarm.models.twilio_utils.call_status', Mock(return_value=CallStatus.SUCCEED))
     def test__sync_alarm_message_with_previous_call_results__alarm_message_reset(self, threshold_brake):
         phone = threshold_brake.threshold.phone
         phone.call()
