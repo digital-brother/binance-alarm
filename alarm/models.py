@@ -39,6 +39,31 @@ class Phone(models.Model):
     def get_needing_sync_phones(cls):
         return cls.objects.exclude(ringing_twilio_call_sid='')
 
+    @classmethod
+    def call_all_suitable_phones(cls):
+        for phone in cls.get_needing_call_phones():
+            phone.call()
+
+    @classmethod
+    def get_needing_call_phones(cls):
+        return [phone for phone in cls.objects.filter(ringing_twilio_call_sid='') if phone.unseen_threshold_brakes]
+
+    def call(self):
+        """
+        Makes a call and communicates an alarm message from a clean DB state, i.e. as if no any calls were done before.
+        Supposed to be used in a combination with sync_alarm_message_with_previous_call_results.
+        """
+        if not self.alarm_message:
+            raise ValidationError('Alarm message should not be empty.')
+
+        if self.twilio_call_sid:
+            raise ValidationError('Alarm message is not synced with results of a previous call')
+
+        call_sid = twilio_utils.call(self.number, self.alarm_message)
+        self.twilio_call_sid = call_sid
+        self.save()
+        return call_sid
+
     def sync_alarm_message_with_previous_call_results(self):
         """
         Syncs alarm message with results of a previous call, as if no any calls were done previously.
@@ -65,31 +90,6 @@ class Phone(models.Model):
         elif call_status == CallStatus.SKIPPED:
             self.twilio_call_sid = ''
             self.save()
-
-    @classmethod
-    def call_all_suitable_phones(cls):
-        for phone in cls.get_needing_call_phones():
-            phone.call()
-
-    @classmethod
-    def get_needing_call_phones(cls):
-        return [phone for phone in cls.objects.filter(ringing_twilio_call_sid='') if phone.unseen_threshold_brakes]
-
-    def call(self):
-        """
-        Makes a call and communicates an alarm message from a clean DB state, i.e. as if no any calls were done before.
-        Supposed to be used in a combination with sync_alarm_message_with_previous_call_results.
-        """
-        if not self.alarm_message:
-            raise ValidationError('Alarm message should not be empty.')
-
-        if self.twilio_call_sid:
-            raise ValidationError('Alarm message is not synced with results of a previous call')
-
-        call_sid = twilio_utils.call(self.number, self.alarm_message)
-        self.twilio_call_sid = call_sid
-        self.save()
-        return call_sid
 
     def send_alarm_telegram_message(self):
         if not self.alarm_message:
