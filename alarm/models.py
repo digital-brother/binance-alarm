@@ -94,7 +94,7 @@ class Phone(models.Model):
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
 
-        telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
+        return telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
 
     @property
     def trade_pairs(self):

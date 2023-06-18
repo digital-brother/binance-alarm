@@ -6,4 +6,5 @@ bot = telegram.Bot(settings.TELEGRAM_BOT_TOKEN)
 
 
 def send_message(chat_id, message):
-    asyncio.run(bot.send_message(chat_id, message))
+    message = asyncio.run(bot.send_message(chat_id, message))
+    return message.id
