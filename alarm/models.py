@@ -106,6 +106,11 @@ class Phone(models.Model):
 
         telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, self.alarm_message)
 
+    def handle_telegram_message_read_event(self):
+        self.unseen_threshold_brakes.update(seen=True)
+        self.telegram_message_id = None
+        self.save()
+
     @property
     def trade_pairs(self):
         return self.thresholds.distinct().values_list('trade_pair', flat=True)
