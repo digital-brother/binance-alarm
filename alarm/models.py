@@ -40,9 +40,9 @@ class Phone(models.Model):
             phone.call()
 
     @classmethod
-    def sync_all_suitable_phones_alarm_messages(cls):
+    def handle_twilio_call_succeed(cls):
         for phone in cls.get_needing_sync_phones():
-            phone.sync_alarm_message_with_previous_call_results()
+            phone.mark_threshold_brakes_as_seen_if_call_succeed()
 
     @classmethod
     def apply_telegram_message_seen(cls):
@@ -56,7 +56,7 @@ class Phone(models.Model):
     def call(self):
         """
         Makes a call and communicates an alarm message from a clean DB state, i.e. as if no any calls were done before.
-        Supposed to be used in a combination with sync_alarm_message_with_previous_call_results.
+        Supposed to be used in a combination with mark_threshold_brakes_as_seen_if_call_succeed.
         """
         if not self.alarm_message:
             raise ValidationError('Alarm message should not be empty.')
@@ -69,7 +69,7 @@ class Phone(models.Model):
         self.save()
         return call_sid
 
-    def sync_alarm_message_with_previous_call_results(self):
+    def mark_threshold_brakes_as_seen_if_call_succeed(self):
         """
         Syncs alarm message with results of a previous call, as if no any calls were done previously.
         If call succeed - resets alarm messages and removes a previous call info.
@@ -90,7 +90,7 @@ class Phone(models.Model):
                 f"User {self.user} was alarmed by phone {self.number} (call_sid={self.twilio_call_sid})")
             # A marking of threshold brakes as seen resets an alarm message
             # as an alarm message is built based on unseen threshold brakes
-            self.mark_threshold_brakes_as_seen()
+            self.handle_user_notified()
         elif call_status == CallStatus.SKIPPED:
             self.twilio_call_sid = None
             self.save()

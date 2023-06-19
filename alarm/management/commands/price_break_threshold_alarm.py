@@ -23,7 +23,7 @@ class Command(BaseCommand):
                 binance_data = socket.recv()
                 # Placed here to be triggered first after pause caused by socket.recv()
 
-                Phone.sync_all_suitable_phones_alarm_messages()
+                Phone.handle_twilio_call_succeed()
                 Phone.apply_telegram_message_seen()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)

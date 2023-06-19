@@ -175,14 +175,14 @@ class TestPhoneCall:
 
     @pytest.mark.xfail(ValidationError)
     def test__sync_alarm_message_with_previous_call_results__no_previous_call(self, phone):
-        phone.sync_alarm_message_with_previous_call_results()
+        phone.mark_threshold_brakes_as_seen_if_call_succeed()
 
     @patch('alarm.models.twilio_utils.call', Mock(return_value='twilio_sid'))
     @patch('alarm.models.twilio_utils.call_status', Mock(return_value=CallStatus.SUCCEED))
     def test__sync_alarm_message_with_previous_call_results__alarm_message_reset(self, threshold_brake):
         phone = threshold_brake.threshold.phone
         phone.call()
-        phone.sync_alarm_message_with_previous_call_results()
+        phone.mark_threshold_brakes_as_seen_if_call_succeed()
         assert phone.alarm_message is None
 
 
