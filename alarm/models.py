@@ -40,12 +40,12 @@ class Phone(models.Model):
             phone.call()
 
     @classmethod
-    def handle_twilio_call_succeed(cls):
+    def handle_user_notified_if_call_succeed(cls):
         for phone in cls.get_needing_sync_phones():
             phone.mark_threshold_brakes_as_seen_if_call_succeed()
 
     @classmethod
-    def apply_telegram_message_seen(cls):
+    def handle_user_notified_if_message_seen(cls):
         for phone in cls.objects.filter(telegram_message_seen=True):
             phone.handle_user_notified()
 
