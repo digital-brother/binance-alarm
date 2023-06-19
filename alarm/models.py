@@ -27,6 +27,7 @@ class Phone(models.Model):
     enabled = models.BooleanField(default=False)
     twilio_call_sid = models.CharField(max_length=64, null=True, blank=True)
     telegram_message_id = models.PositiveBigIntegerField(null=True, blank=True)
+    current_telegram_message = models.CharField(max_length=1024, null=True, blank=True)
     paused_until = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -104,6 +105,7 @@ class Phone(models.Model):
 
         message_id = telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
         self.telegram_message_id = message_id
+        self.current_telegram_message = self.alarm_message
         self.save()
         return message_id
 
@@ -114,11 +116,16 @@ class Phone(models.Model):
         if not self.telegram_message_id:
             raise ValidationError('Telegram message does not exist. Use send_alarm_telegram_message() instead.')
 
+        if self.current_telegram_message == self.alarm_message:
+            return
+
         telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, self.alarm_message)
+        self.current_telegram_message = self.alarm_message
 
     def mark_threshold_brakes_as_seen(self):
         self.unseen_threshold_brakes.update(seen=True)
         self.telegram_message_id = None
+        self.current_telegram_message = None
         self.twilio_call_sid = None
         self.save()
 
