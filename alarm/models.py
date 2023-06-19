@@ -1,7 +1,6 @@
-import logging
 import datetime as dt
+import logging
 from django.contrib.auth import get_user_model
-
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -53,7 +52,7 @@ class Phone(models.Model):
 
     @classmethod
     def get_needing_sync_phones(cls):
-        return cls.objects.exclude(twilio_call_sid__isnull=True)
+        return cls.objects.filter(twilio_call_sid__isnull=False)
 
     def call(self):
         """
@@ -83,7 +82,8 @@ class Phone(models.Model):
         """
 
         if not self.twilio_call_sid:
-            raise ValidationError("Method should be called only after phone call was done and still not synced")
+            raise ValidationError("No twilio_call_sid set. "
+                                  "Method should be called only after phone call was done and still not synced")
 
         call_status = twilio_utils.call_status(self.twilio_call_sid)
         if call_status == CallStatus.SUCCEED:
