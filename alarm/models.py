@@ -28,6 +28,7 @@ class Phone(models.Model):
     twilio_call_sid = models.CharField(max_length=64, null=True, blank=True)
     telegram_message_id = models.PositiveBigIntegerField(null=True, blank=True)
     current_telegram_message = models.CharField(max_length=1024, null=True, blank=True)
+    telegram_message_seen = models.BooleanField(default=False)
     paused_until = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -42,6 +43,15 @@ class Phone(models.Model):
     def sync_all_suitable_phones_alarm_messages(cls):
         for phone in cls.get_needing_sync_phones():
             phone.sync_alarm_message_with_previous_call_results()
+
+    @classmethod
+    def apply_telegram_message_seen(cls):
+        for phone in cls.objects.filter(telegram_message_seen=True):
+            phone.handle_user_notified()
+
+    def handle_user_notified(self):
+        self.mark_threshold_brakes_as_seen()
+        self.pause_for_x_minutes(60)
 
     def call(self):
         """
@@ -89,43 +99,53 @@ class Phone(models.Model):
     def send_or_update_all_suitable_phones_telegram_messages(cls):
         phones_to_send_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=True)
                                   if phone.unseen_threshold_brakes]
-        phones_to_update_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=False)]
+        phones_to_update_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=False)
+                                    if phone.unseen_threshold_brakes]
         for phone in phones_to_send_message:
             phone.send_alarm_telegram_message()
         for phone in phones_to_update_message:
             phone.update_alarm_telegram_message()
 
     def send_alarm_telegram_message(self):
-        if not self.alarm_message:
+        message = self.alarm_message
+        if not message:
             raise ValidationError('Message should not be empty.')
 
         if self.telegram_message_id:
             raise ValidationError('Telegram message already exists and is still unseen. '
                                   'Use update_alarm_telegram_message() method instead.')
 
-        message_id = telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
+        message_id = telegram_utils.send_message(self.telegram_chat_id, message)
         self.telegram_message_id = message_id
-        self.current_telegram_message = self.alarm_message
+        self.current_telegram_message = message
         self.save()
         return message_id
 
     def update_alarm_telegram_message(self):
-        if not self.alarm_message:
+        message = self.alarm_message
+        if not message:
             raise ValidationError('Message should not be empty.')
 
         if not self.telegram_message_id:
             raise ValidationError('Telegram message does not exist. Use send_alarm_telegram_message() instead.')
 
-        if self.current_telegram_message == self.alarm_message:
+        if self.current_telegram_message == message:
             return
 
-        telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, self.alarm_message)
-        self.current_telegram_message = self.alarm_message
+        telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, message)
+        self.current_telegram_message = message
+        self.save()
 
     def mark_threshold_brakes_as_seen(self):
         self.unseen_threshold_brakes.update(seen=True)
+
         self.telegram_message_id = None
         self.current_telegram_message = None
+        self.telegram_message_seen = False
+        paused_until = timezone.localtime(self.paused_until).strftime("%Y-%m-%d %H:%M:%S")
+        telegram_utils.send_message(self.telegram_chat_id, f'Bot was paused for 1 hour (until {paused_until}).')
+
+        twilio_utils.cancel_call(self.twilio_call_sid)
         self.twilio_call_sid = None
         self.save()
 

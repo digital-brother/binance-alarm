@@ -38,3 +38,8 @@ def call_status(sid):
         return CallStatus.SUCCEED
     else:
         raise ValidationError(f'Unknown status: {call.status}')
+
+
+def cancel_call(sid):
+    call = client.calls(sid).fetch()
+    call.update(status='canceled')

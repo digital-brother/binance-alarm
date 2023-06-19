@@ -24,6 +24,7 @@ class Command(BaseCommand):
                 # Placed here to be triggered first after pause caused by socket.recv()
 
                 Phone.sync_all_suitable_phones_alarm_messages()
+                Phone.apply_telegram_message_seen()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)

@@ -13,12 +13,7 @@ from alarm.models import Phone
 
 
 async def alarm_message_seen_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    phone = await Phone.objects.aget(number='+380955078262')
-    await sync_to_async(phone.pause_for_x_minutes)(60)
-    await sync_to_async(phone.mark_threshold_brakes_as_seen)()
-
-    paused_until = timezone.localtime(phone.paused_until).strftime("%Y-%m-%d %H:%M:%S")
-    await update.message.reply_text(f'Bot was paused for 1 hour (until {paused_until}).')
+    phone = await Phone.objects.filter(number='+380955078262').aupdate(telegram_message_seen=True)
 
 
 def run_telegram_bot():
