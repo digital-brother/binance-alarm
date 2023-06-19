@@ -32,10 +32,6 @@ class Phone(models.Model):
     def __str__(self):
         return str(self.number)
 
-    def pause_for_x_minutes(self, minutes):
-        self.paused_until = timezone.now() + dt.timedelta(minutes=minutes)
-        self.save()
-
     @classmethod
     def call_all_suitable_phones(cls):
         for phone in cls.get_needing_call_phones():
@@ -45,14 +41,6 @@ class Phone(models.Model):
     def sync_all_suitable_phones_alarm_messages(cls):
         for phone in cls.get_needing_sync_phones():
             phone.sync_alarm_message_with_previous_call_results()
-
-    @classmethod
-    def get_needing_call_phones(cls):
-        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=True) if phone.unseen_threshold_brakes]
-
-    @classmethod
-    def get_needing_sync_phones(cls):
-        return cls.objects.filter(twilio_call_sid__isnull=False)
 
     def call(self):
         """
@@ -96,6 +84,16 @@ class Phone(models.Model):
             self.twilio_call_sid = None
             self.save()
 
+    @classmethod
+    def send_or_update_all_suitable_phones_telegram_messages(cls):
+        phones_to_send_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=True)
+                                  if phone.unseen_threshold_brakes]
+        phones_to_update_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=False)]
+        for phone in phones_to_send_message:
+            phone.send_alarm_telegram_message()
+        for phone in phones_to_update_message:
+            phone.update_alarm_telegram_message()
+
     def send_alarm_telegram_message(self):
         if not self.alarm_message:
             raise ValidationError('Message should not be empty.')
@@ -124,6 +122,10 @@ class Phone(models.Model):
         self.twilio_call_sid = None
         self.save()
 
+    def pause_for_x_minutes(self, minutes):
+        self.paused_until = timezone.now() + dt.timedelta(minutes=minutes)
+        self.save()
+
     @property
     def trade_pairs(self):
         return self.thresholds.distinct().values_list('trade_pair', flat=True)
@@ -147,6 +149,18 @@ class Phone(models.Model):
 
         alarm_message = '\n'.join(trade_pairs_alarm_messages)
         return alarm_message
+
+    @classmethod
+    def get_needing_call_phones(cls):
+        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=True) if phone.unseen_threshold_brakes]
+
+    @classmethod
+    def get_needing_sync_phones(cls):
+        return cls.objects.filter(twilio_call_sid__isnull=False)
+
+    @classmethod
+    def get_needing_message_sync_phones(cls):
+        return [phone for phone in cls.objects.all() if phone.unseen_threshold_brakes]
 
 
 class TradePair:

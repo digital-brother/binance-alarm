@@ -20,27 +20,19 @@ class Command(BaseCommand):
         try:
             while True:
                 # TODO: update to include phones whose thresholds were marked as seen
-                affected_phones = set()
-
                 binance_data = socket.recv()
                 # Placed here to be triggered first after pause caused by socket.recv()
+
                 Phone.sync_all_suitable_phones_alarm_messages()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
+                TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
 
-                created_threshold_brakes = TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
-
-                # Telegram logic
-                affected_phones = affected_phones.union(
-                    {threshold_brake.threshold.phone for threshold_brake in created_threshold_brakes})
-                for phone in affected_phones:
-                    phone.send_alarm_telegram_message()
-
-                # Phone logic
                 # Placed here to be triggered after alarm message is updated due to
                 # a previous call status sync and new candles data
                 Phone.call_all_suitable_phones()
+                Phone.send_or_update_all_suitable_phones_telegram_messages()
 
                 # TODO: recheck logic
                 # Check if new trade pair appear in the database

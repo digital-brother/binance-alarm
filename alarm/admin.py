@@ -16,7 +16,7 @@ class PhoneAdmin(admin.ModelAdmin):
 class ThresholdBrakeAdmin(admin.ModelAdmin):
     model = ThresholdBrake
     readonly_fields = ['id', 'threshold_id', 'happened_at']
-    list_display = ['__str__', 'phone']
+    list_display = ['phone', '__str__', 'seen']
 
     @admin.display(description="Phone")
     def phone(self, obj):
