@@ -40,23 +40,28 @@ class Phone(models.Model):
             phone.call()
 
     @classmethod
-    def handle_user_notified_if_call_succeed(cls):
-        for phone in cls.get_needing_sync_phones():
-            phone.mark_threshold_brakes_as_seen_if_call_succeed()
+    def send_or_update_all_telegram_messages(cls):
+        phones_to_send_message = cls.get_needing_message_send_phones()
+        phones_to_update_message = cls.get_needing_message_update_phones()
+        for phone in phones_to_send_message:
+            phone.send_telegram_message()
+        for phone in phones_to_update_message:
+            phone.update_telegram_message()
 
     @classmethod
-    def handle_user_notified_if_message_seen(cls):
-        for phone in cls.objects.filter(telegram_message_seen=True):
-            phone.handle_user_notified()
+    def handle_user_notified_if_calls_succeed(cls):
+        for phone in cls.get_needing_call_check_phones():
+            phone.handle_user_notified_if_call_succeed()
 
-    def handle_user_notified(self):
-        self.mark_threshold_brakes_as_seen()
-        self.pause_for_x_minutes(60)
+    @classmethod
+    def handle_user_notified_if_messages_seen(cls):
+        for phone in cls.objects.filter(telegram_message_seen=True):
+            phone.mark_threshold_brakes_as_seen()
 
     def call(self):
         """
         Makes a call and communicates an alarm message from a clean DB state, i.e. as if no any calls were done before.
-        Supposed to be used in a combination with mark_threshold_brakes_as_seen_if_call_succeed.
+        Supposed to be used in a combination with handle_user_notifiedq_if_call_succeed.
         """
         if not self.alarm_message:
             raise ValidationError('Alarm message should not be empty.')
@@ -69,7 +74,7 @@ class Phone(models.Model):
         self.save()
         return call_sid
 
-    def mark_threshold_brakes_as_seen_if_call_succeed(self):
+    def handle_user_notified_if_call_succeed(self):
         """
         Syncs alarm message with results of a previous call, as if no any calls were done previously.
         If call succeed - resets alarm messages and removes a previous call info.
@@ -90,23 +95,12 @@ class Phone(models.Model):
                 f"User {self.user} was alarmed by phone {self.number} (call_sid={self.twilio_call_sid})")
             # A marking of threshold brakes as seen resets an alarm message
             # as an alarm message is built based on unseen threshold brakes
-            self.handle_user_notified()
+            self.mark_threshold_brakes_as_seen()
         elif call_status == CallStatus.SKIPPED:
             self.twilio_call_sid = None
             self.save()
 
-    @classmethod
-    def send_or_update_all_suitable_phones_telegram_messages(cls):
-        phones_to_send_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=True)
-                                  if phone.unseen_threshold_brakes]
-        phones_to_update_message = [phone for phone in Phone.objects.filter(telegram_message_id__isnull=False)
-                                    if phone.unseen_threshold_brakes]
-        for phone in phones_to_send_message:
-            phone.send_alarm_telegram_message()
-        for phone in phones_to_update_message:
-            phone.update_alarm_telegram_message()
-
-    def send_alarm_telegram_message(self):
+    def send_telegram_message(self):
         message = self.alarm_message
         if not message:
             raise ValidationError('Message should not be empty.')
@@ -121,13 +115,13 @@ class Phone(models.Model):
         self.save()
         return message_id
 
-    def update_alarm_telegram_message(self):
+    def update_telegram_message(self):
         message = self.alarm_message
         if not message:
             raise ValidationError('Message should not be empty.')
 
         if not self.telegram_message_id:
-            raise ValidationError('Telegram message does not exist. Use send_alarm_telegram_message() instead.')
+            raise ValidationError('Telegram message does not exist. Use send_telegram_message() instead.')
 
         if self.current_telegram_message == message:
             return
@@ -147,10 +141,7 @@ class Phone(models.Model):
 
         twilio_utils.cancel_call(self.twilio_call_sid)
         self.twilio_call_sid = None
-        self.save()
-
-    def pause_for_x_minutes(self, minutes):
-        self.paused_until = timezone.now() + dt.timedelta(minutes=minutes)
+        self.paused_until = timezone.now() + dt.timedelta(minutes=60)
         self.save()
 
     @property
@@ -179,15 +170,23 @@ class Phone(models.Model):
 
     @classmethod
     def get_needing_call_phones(cls):
-        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=True) if phone.unseen_threshold_brakes]
+        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=True)
+                if phone.unseen_threshold_brakes]
 
     @classmethod
-    def get_needing_sync_phones(cls):
-        return cls.objects.filter(twilio_call_sid__isnull=False)
+    def get_needing_call_check_phones(cls):
+        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=False)
+                if phone.unseen_threshold_brakes]
 
     @classmethod
-    def get_needing_message_sync_phones(cls):
-        return [phone for phone in cls.objects.all() if phone.unseen_threshold_brakes]
+    def get_needing_message_send_phones(cls):
+        return [phone for phone in cls.objects.filter(telegram_message_id__isnull=True)
+                if phone.unseen_threshold_brakes]
+
+    @classmethod
+    def get_needing_message_update_phones(cls):
+        return [phone for phone in Phone.objects.filter(telegram_message_id__isnull=False)
+                if phone.unseen_threshold_brakes]
 
 
 class TradePair:

@@ -23,8 +23,8 @@ class Command(BaseCommand):
                 binance_data = socket.recv()
                 # Placed here to be triggered first after pause caused by socket.recv()
 
-                Phone.handle_user_notified_if_call_succeed()
-                Phone.handle_user_notified_if_message_seen()
+                Phone.handle_user_notified_if_calls_succeed()
+                Phone.handle_user_notified_if_messages_seen()
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 # Placed here to be triggered after alarm message is updated due to
                 # a previous call status sync and new candles data
                 Phone.call_all_suitable_phones()
-                Phone.send_or_update_all_suitable_phones_telegram_messages()
+                Phone.send_or_update_all_telegram_messages()
 
                 # TODO: recheck logic
                 # Check if new trade pair appear in the database
