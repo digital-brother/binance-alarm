@@ -2,23 +2,28 @@
 For an in-depth explanation, check out
 https://github.com/python-telegram-bot/python-telegram-bot/wiki/InlineKeyboard-Example.
 """
+from asgiref.sync import sync_to_async
 from django.conf import settings
-
 from django.core.management import BaseCommand
+from django.utils import timezone
 from telegram import Update
-from telegram.ext import Application, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, ContextTypes, CommandHandler
+
+from alarm.models import Phone
 
 
-async def button_pressed_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text(text=query.message.text)
-    await query.message.reply_text('Bot was paused for 1 hour')
+async def alarm_message_seen_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    phone = await Phone.objects.aget(number='+380955078262')
+    await sync_to_async(phone.pause_for_x_minutes)(60)
+    await sync_to_async(phone.mark_threshold_brakes_as_seen)()
+
+    paused_until = timezone.localtime(phone.paused_until).strftime("%Y-%m-%d %H:%M:%S")
+    await update.message.reply_text(f'Bot was paused for 1 hour (until {paused_until}).')
 
 
 def run_telegram_bot():
     application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
-    application.add_handler(CallbackQueryHandler(button_pressed_handler))
+    application.add_handler(CommandHandler("alarm_message_seen", alarm_message_seen_handler))
     application.run_polling(allowed_updates=Update.CALLBACK_QUERY)
 
 

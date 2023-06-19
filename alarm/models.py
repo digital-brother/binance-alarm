@@ -1,9 +1,11 @@
 import logging
+import datetime as dt
 from django.contrib.auth import get_user_model
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 from alarm import telegram_utils, twilio_utils
@@ -24,11 +26,16 @@ class Phone(models.Model):
     number = PhoneNumberField(blank=True, unique=True, region='UA')
     telegram_chat_id = models.CharField(max_length=32, unique=True)
     enabled = models.BooleanField(default=False)
-    twilio_call_sid = models.CharField(max_length=64, null=True)
-    telegram_message_id = models.PositiveBigIntegerField(null=True)
+    twilio_call_sid = models.CharField(max_length=64, null=True, blank=True)
+    telegram_message_id = models.PositiveBigIntegerField(null=True, blank=True)
+    paused_until = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return str(self.number)
+
+    def pause_for_x_minutes(self, minutes):
+        self.paused_until = timezone.now() + dt.timedelta(minutes=minutes)
+        self.save()
 
     @classmethod
     def call_all_suitable_phones(cls):
@@ -94,7 +101,7 @@ class Phone(models.Model):
             raise ValidationError('Message should not be empty.')
 
         if self.telegram_message_id:
-            raise ValidationError('Telegram message is already exists and is still unseen.'
+            raise ValidationError('Telegram message already exists and is still unseen. '
                                   'Use update_alarm_telegram_message() method instead.')
 
         message_id = telegram_utils.send_message(self.telegram_chat_id, self.alarm_message)
@@ -113,10 +120,6 @@ class Phone(models.Model):
 
     def mark_threshold_brakes_as_seen(self):
         self.unseen_threshold_brakes.update(seen=True)
-
-        message = f"{self.alarm_message}\n\nBot paused for 1 hour."
-        telegram_utils.update_message(self.telegram_chat_id, self.telegram_message_id, message)
-
         self.telegram_message_id = None
         self.twilio_call_sid = None
         self.save()
@@ -301,7 +304,7 @@ class Candle(models.Model):
 
 
 class ThresholdBrake(models.Model):
-    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='unseen_threshold_brakes')
+    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='threshold_brakes')
     happened_at = models.DateTimeField(auto_now_add=True)
     seen = models.BooleanField(default=False)
 

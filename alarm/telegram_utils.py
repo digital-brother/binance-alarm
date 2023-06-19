@@ -1,14 +1,11 @@
 import asyncio
 import telegram
 from django.conf import settings
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def send_message(chat_id, message):
     bot = telegram.Bot(settings.TELEGRAM_BOT_TOKEN)
-    keyboard = [[InlineKeyboardButton("Pause bot for 1 hour", callback_data='alex')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = asyncio.run(bot.send_message(chat_id, message, reply_markup=reply_markup))
+    message = asyncio.run(bot.send_message(chat_id, message))
     return message.id
 
 
