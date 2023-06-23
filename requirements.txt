@@ -17,3 +17,4 @@ pytest-django==4.5.2
 pytest-factoryboy==2.5.1
 python-telegram-bot==20.3
 twilio==8.0.0
+pytest-raises==0.11

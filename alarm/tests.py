@@ -162,18 +162,18 @@ def test__create_threshold_brakes_and_get_alarm_message():
 
 
 class TestPhoneCall:
-    @pytest.mark.xfail(ValidationError)
+    @pytest.mark.raises(raises=ValidationError)
     def test__call__no_alarm_message(self, phone):
         phone.call()
 
-    @pytest.mark.xfail(ValidationError)
+    @pytest.mark.raises(raises=ValidationError)
     @patch('alarm.models.twilio_utils.call', Mock(return_value='twilio_sid'))
     def test__call__alarm_message_not_synced(self, threshold_brake):
         phone = threshold_brake.threshold.phone
         phone.call()
         phone.call()
 
-    @pytest.mark.xfail(ValidationError)
+    @pytest.mark.raises(raises=ValidationError)
     def test__handle_user_notified_if_call_succeed__no_previous_call(self, phone):
         phone.handle_user_notified_if_call_succeed()
 
@@ -189,6 +189,6 @@ class TestPhoneCall:
 
 
 class TestSendUpdateMessage:
-    @pytest.mark.xfail(ValidationError)
+    @pytest.mark.raises(raises=ValidationError)
     def test__send_message__no_alarm_message(self, phone):
         phone.send_telegram_message()
