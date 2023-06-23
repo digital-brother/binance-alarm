@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from pytest_factoryboy import register
 
 from alarm.exceptions import NoAlarmMessageError, TelegramMessageAlreadyExistsError, NoPreviousCallError, \
-    PreviousCallResultsNotFetchedError
+    PreviousCallResultsNotFetchedError, NoTelegramMessageError
 from alarm.factories import ThresholdFactory, CandleFactory, ThresholdBrakeFactory, PhoneFactory, UserFactory
 from alarm.models import TradePair, ThresholdBrake, CallStatus
 
@@ -202,3 +202,36 @@ class TestSendUpdateMessage:
         phone.telegram_message_id = 5
         phone.save()
         phone.send_telegram_message()
+
+    @patch('alarm.models.telegram_utils.send_message', Mock(return_value=5))
+    def test__send_message__telegram_message_id_set(self, threshold_brake):
+        phone = threshold_brake.threshold.phone
+        assert not phone.telegram_message_id
+        phone.send_telegram_message()
+        assert phone.telegram_message_id == 5
+
+    @patch('alarm.models.telegram_utils.send_message', Mock(return_value=5))
+    def test__send_message__telegram_message_set(self, threshold_brake):
+        phone = threshold_brake.threshold.phone
+        message = phone.alarm_message
+        assert not phone.current_telegram_message
+        phone.send_telegram_message()
+        assert phone.current_telegram_message == message
+
+    @pytest.mark.raises(exception=NoAlarmMessageError)
+    def test__update_message__no_alarm_message(self, phone):
+        phone.send_telegram_message()
+
+    @pytest.mark.raises(exception=NoTelegramMessageError)
+    def test__update__message__message_does_not_exist(self, threshold_brake):
+        threshold_brake.threshold.phone.update_telegram_message()
+
+    @patch('alarm.models.telegram_utils.update_message', Mock(return_value=5))
+    def test__update__message__message_updated(self, threshold_brake):
+        phone = threshold_brake.threshold.phone
+        phone.current_telegram_message = 'Test_message'
+        phone.telegram_message_id = 5
+
+        message = phone.alarm_message
+        phone.update_telegram_message()
+        assert phone.current_telegram_message == message
