@@ -61,7 +61,7 @@ class Phone(models.Model):
     def call(self):
         """
         Makes a call and communicates an alarm message from a clean DB state, i.e. as if no any calls were done before.
-        Supposed to be used in a combination with handle_user_notifiedq_if_call_succeed.
+        Supposed to be used in a combination with handle_user_notified_if_call_succeed.
         """
         if not self.alarm_message:
             raise ValidationError('Alarm message should not be empty.')
