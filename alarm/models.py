@@ -9,6 +9,8 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 from alarm import telegram_utils, twilio_utils
 from alarm.binance_utils import get_binance_valid_trade_pairs
+from alarm.exceptions import NoAlarmMessageError, PreviousCallResultsNotFetchedError, NoPreviousCallError, \
+    TelegramMessageAlreadyExistsError, NoTelegramMessageError
 
 logger = logging.getLogger(f'{__name__}')
 User = get_user_model()
@@ -64,10 +66,10 @@ class Phone(models.Model):
         Supposed to be used in a combination with handle_user_notified_if_call_succeed.
         """
         if not self.alarm_message:
-            raise ValidationError('Alarm message should not be empty.')
+            raise NoAlarmMessageError('Alarm message should not be empty.')
 
         if self.twilio_call_sid:
-            raise ValidationError('Alarm message is not synced with results of a previous call')
+            raise PreviousCallResultsNotFetchedError('Alarm message is not synced with results of a previous call')
 
         call_sid = twilio_utils.call(self.number, self.alarm_message)
         self.twilio_call_sid = call_sid
@@ -86,8 +88,8 @@ class Phone(models.Model):
         """
 
         if not self.twilio_call_sid:
-            raise ValidationError("No twilio_call_sid set. "
-                                  "Method should be called only after phone call was done and still not synced")
+            raise NoPreviousCallError("No twilio_call_sid set. "
+                                      "Method should be called only after phone call was done and still not synced")
 
         call_status = twilio_utils.call_status(self.twilio_call_sid)
         if call_status == CallStatus.SUCCEED:
@@ -103,11 +105,11 @@ class Phone(models.Model):
     def send_telegram_message(self):
         message = self.alarm_message
         if not message:
-            raise ValidationError('Message should not be empty.')
+            raise NoAlarmMessageError('Message should not be empty.')
 
         if self.telegram_message_id:
-            raise ValidationError('Telegram message already exists and is still unseen. '
-                                  'Use update_alarm_telegram_message() method instead.')
+            raise TelegramMessageAlreadyExistsError('Telegram message already exists and is still unseen. '
+                                                    'Use update_alarm_telegram_message() method instead.')
 
         message_id = telegram_utils.send_message(self.telegram_chat_id, message)
         self.telegram_message_id = message_id
@@ -118,10 +120,10 @@ class Phone(models.Model):
     def update_telegram_message(self):
         message = self.alarm_message
         if not message:
-            raise ValidationError('Message should not be empty.')
+            raise NoAlarmMessageError('Message should not be empty.')
 
         if not self.telegram_message_id:
-            raise ValidationError('Telegram message does not exist. Use send_telegram_message() instead.')
+            raise NoTelegramMessageError('Telegram message does not exist. Use send_telegram_message() instead.')
 
         if self.current_telegram_message == message:
             return
