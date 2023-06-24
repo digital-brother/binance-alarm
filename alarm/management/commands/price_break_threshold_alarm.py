@@ -1,6 +1,7 @@
 import logging
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from alarm.binance_utils import connect_binance_socket, \
     parse_candle_from_websocket_update

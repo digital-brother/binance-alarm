@@ -235,3 +235,22 @@ class TestSendUpdateMessage:
         message = phone.alarm_message
         phone.update_telegram_message()
         assert phone.current_telegram_message == message
+
+
+class TestMarkThresholdBrakesAsSeen:
+    @patch('alarm.models.telegram_utils.send_message', Mock(return_value=5))
+    @patch('alarm.models.twilio_utils.cancel_call', Mock(return_value=5))
+    def test__mark_threshold_brakes_as_seen__telegram_message_reset(self):
+        phone = PhoneFactory(current_telegram_message='test_message', telegram_message_id=5)
+        phone.mark_threshold_brakes_as_seen()
+        assert not phone.alarm_message
+        assert not phone.telegram_message_id
+
+    @patch('alarm.models.telegram_utils.send_message', Mock(return_value=5))
+    @patch('alarm.models.twilio_utils.cancel_call', Mock(return_value=5))
+    def test__mark_threshold_brakes_as_seen__twilio_call_cancelled(self):
+        phone = PhoneFactory(current_telegram_message='test_message', telegram_message_id=5)
+        phone.mark_threshold_brakes_as_seen()
+        assert not phone.alarm_message
+        assert not phone.telegram_message_id
+

@@ -22,6 +22,11 @@ class CallStatus(models.TextChoices):
     SKIPPED = 'skipped'
 
 
+class PhoneManager(models.Manager):
+    def active(self, **kwargs):
+        return self.filter(enabled=True, paused_until__lte=timezone.now(), **kwargs)
+
+
 class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='phones')
     number = PhoneNumberField(blank=True, unique=True, region='UA')
@@ -32,6 +37,8 @@ class Phone(models.Model):
     current_telegram_message = models.CharField(max_length=1024, null=True, blank=True)
     telegram_message_seen = models.BooleanField(default=False)
     paused_until = models.DateTimeField(null=True, blank=True)
+
+    objects = PhoneManager()
 
     def __str__(self):
         return str(self.number)
@@ -258,10 +265,17 @@ class TradePair:
         return threshold_brakes
 
 
+class ThresholdManager(models.Manager):
+    def active(self, **kwargs):
+        return self.filter(phone__enabled=True, phone__paused_until__lte=timezone.now(), **kwargs)
+
+
 class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='thresholds')
     trade_pair = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    objects = ThresholdManager()
 
     class Meta:
         unique_together = ['phone', 'trade_pair', 'price']
