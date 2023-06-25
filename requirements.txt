@@ -11,8 +11,9 @@ websocket-client==1.5.1
 requests~=2.28.2
 django-extensions==3.2.1
 psycopg2==2.9.6
+django-environ==0.10.0
 
-environ~=1.0
+
 pytest-django==4.5.2
 pytest-factoryboy==2.5.1
 python-telegram-bot==20.3
