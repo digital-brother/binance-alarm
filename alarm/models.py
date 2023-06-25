@@ -11,7 +11,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 from alarm import telegram_utils, twilio_utils
 from alarm.binance_utils import get_binance_valid_trade_pairs
 from alarm.exceptions import NoAlarmMessageError, PreviousCallResultsNotFetchedError, NoPreviousCallError, \
-    TelegramMessageAlreadyExistsError, NoTelegramMessageError, InactivePhoneHasUnseenThresholdBrakesError, \
+    TelegramMessageAlreadyExistsError, NoTelegramMessageError, InactivePhoneHasUnseenThresholdBreaksError, \
     InactivePhoneError
 
 logger = logging.getLogger(f'{__name__}')
@@ -71,9 +71,9 @@ class Phone(models.Model):
     @classmethod
     def handle_user_notified_if_messages_seen(cls):
         # In case if telegram message seen button was pressed and phone disabled,
-        # we still would like to mark threshold brakes as seen.
+        # we still would like to mark threshold breaks as seen.
         for phone in cls.objects.filter(telegram_message_seen=True):
-            phone.mark_threshold_brakes_as_seen()
+            phone.mark_threshold_breaks_as_seen()
 
     def call(self):
         """
@@ -98,7 +98,7 @@ class Phone(models.Model):
         If call was skipped - just removes a previous call info (equals to recall).
         If call is pending - keeps a call as a previous call.
 
-        Discards all thresholds brakes happened after 'Receive call' button was pressed on phone
+        Discards all thresholds breaks happened after 'Receive call' button was pressed on phone
         till event was caught by Django.
         """
 
@@ -110,9 +110,9 @@ class Phone(models.Model):
         if call_status == CallStatus.SUCCEED:
             logger.info(
                 f"User {self.user} was alarmed by phone {self.number} (call_sid={self.twilio_call_sid})")
-            # A marking of threshold brakes as seen resets an alarm message
-            # as an alarm message is built based on unseen threshold brakes
-            self.mark_threshold_brakes_as_seen()
+            # A marking of threshold breaks as seen resets an alarm message
+            # as an alarm message is built based on unseen threshold breaks
+            self.mark_threshold_breaks_as_seen()
         elif call_status == CallStatus.SKIPPED:
             self.twilio_call_sid = None
             self.save()
@@ -147,8 +147,8 @@ class Phone(models.Model):
         self.current_telegram_message = message
         self.save()
 
-    def mark_threshold_brakes_as_seen(self):
-        self.unseen_threshold_brakes.update(seen=True)
+    def mark_threshold_breaks_as_seen(self):
+        self.unseen_threshold_breaks.update(seen=True)
 
         self.telegram_message_id = None
         self.current_telegram_message = None
@@ -166,22 +166,22 @@ class Phone(models.Model):
         return self.thresholds.distinct().values_list('trade_pair', flat=True)
 
     @property
-    def unseen_threshold_brakes(self):
-        # TODO: What if there are unseen threshold brakes for a disabled phone?
+    def unseen_threshold_breaks(self):
+        # TODO: What if there are unseen threshold breaks for a disabled phone?
         # Should we mark them as seen?
-        unseen_threshold_brakes = ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
-        if not self.is_active and unseen_threshold_brakes:
-            raise InactivePhoneHasUnseenThresholdBrakesError
+        unseen_threshold_breaks = ThresholdBreak.objects.filter(threshold__phone__number=self.number, seen=False)
+        if not self.is_active and unseen_threshold_breaks:
+            raise InactivePhoneHasUnseenThresholdBreaksError
 
-        return unseen_threshold_brakes
+        return unseen_threshold_breaks
 
     @property
     def alarm_message(self):
         trade_pairs_alarm_messages = []
 
         for trade_pair in self.trade_pairs:
-            trade_pair_unseen_threshold_brakes = TradePair(self, trade_pair).unseen_threshold_brakes
-            if trade_pair_unseen_threshold_brakes:
+            trade_pair_unseen_threshold_breaks = TradePair(self, trade_pair).unseen_threshold_breaks
+            if trade_pair_unseen_threshold_breaks:
                 trade_pair_alarm_message = TradePair(self, trade_pair).alarm_message
                 trade_pairs_alarm_messages.append(trade_pair_alarm_message)
 
@@ -198,22 +198,22 @@ class Phone(models.Model):
     @classmethod
     def get_needing_call_phones(cls):
         return [phone for phone in cls.objects.active().filter(twilio_call_sid__isnull=True)
-                if phone.unseen_threshold_brakes]
+                if phone.unseen_threshold_breaks]
 
     @classmethod
     def get_needing_call_check_phones(cls):
         return [phone for phone in cls.objects.active().filter(twilio_call_sid__isnull=False)
-                if phone.unseen_threshold_brakes]
+                if phone.unseen_threshold_breaks]
 
     @classmethod
     def get_needing_message_send_phones(cls):
         return [phone for phone in cls.objects.active().filter(telegram_message_id__isnull=True)
-                if phone.unseen_threshold_brakes]
+                if phone.unseen_threshold_breaks]
 
     @classmethod
     def get_needing_message_update_phones(cls):
         return [phone for phone in Phone.objects.active().filter(telegram_message_id__isnull=False)
-                if phone.unseen_threshold_brakes]
+                if phone.unseen_threshold_breaks]
 
 
 class TradePair:
@@ -222,10 +222,10 @@ class TradePair:
         self.trade_pair = trade_pair
 
     @property
-    def unseen_threshold_brakes(self):
-        # TODO: What if there is an unseen threshold brake for a disabled phone?
+    def unseen_threshold_breaks(self):
+        # TODO: What if there is an unseen threshold break for a disabled phone?
         # Should we mark them as seen?
-        return ThresholdBrake.objects.filter(
+        return ThresholdBreak.objects.filter(
             threshold__phone=self.phone, threshold__trade_pair=self.trade_pair, seen=False)
 
     @property
@@ -247,24 +247,24 @@ class TradePair:
         return last_candle.close_price if last_candle else None
 
     @property
-    def thresholds_brakes_prices_str(self):
-        unseen_threshold_brake_prices = \
-            self.unseen_threshold_brakes.order_by('happened_at').values_list('threshold__price', flat=True)
-        thresholds_brake_prices_str = ', '.join([f'{price}' for price in unseen_threshold_brake_prices])
-        return thresholds_brake_prices_str
+    def thresholds_breaks_prices_str(self):
+        unseen_threshold_break_prices = \
+            self.unseen_threshold_breaks.order_by('happened_at').values_list('threshold__price', flat=True)
+        thresholds_break_prices_str = ', '.join([f'{price}' for price in unseen_threshold_break_prices])
+        return thresholds_break_prices_str
 
     @property
     def alarm_message(self):
-        if not self.thresholds_brakes_prices_str:
+        if not self.thresholds_breaks_prices_str:
             return None
 
-        message = f"{self.display_name} broken thresholds {self.thresholds_brakes_prices_str} " \
+        message = f"{self.display_name} broken thresholds {self.thresholds_breaks_prices_str} " \
                   f"and the current {self.display_name} price is {self.close_price}."
         return message
 
     @classmethod
-    def create_thresholds_brakes_from_recent_candles_update(cls, trade_pair):
-        # We do not create threshold brakes in case if phone is inactive
+    def create_thresholds_breaks_from_recent_candles_update(cls, trade_pair):
+        # We do not create threshold breaks in case if phone is inactive
         thresholds = Threshold.objects.active().filter(trade_pair=trade_pair)
         last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
         penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
@@ -272,7 +272,7 @@ class TradePair:
         if last_candle is None:
             return []
 
-        threshold_brakes = []
+        threshold_breaks = []
         for threshold in thresholds:
             threshold_broken = threshold.is_broken(penultimate_candle, last_candle)
             logger.info(f"{str(trade_pair).upper()}; "
@@ -280,10 +280,10 @@ class TradePair:
                         f"threshold: {threshold}; "
                         f"threshold broken: {threshold_broken};")
             if threshold_broken:
-                threshold_brake = threshold.create_threshold_brake_if_needed()
-                threshold_brakes.append(threshold_brake)
+                threshold_break = threshold.create_threshold_break_if_needed()
+                threshold_breaks.append(threshold_break)
 
-        return threshold_brakes
+        return threshold_breaks
 
 
 class ThresholdManager(models.Manager):
@@ -334,17 +334,17 @@ class Threshold(models.Model):
 
         return False
 
-    def create_threshold_brake_if_needed(self):
+    def create_threshold_break_if_needed(self):
         if not self.phone.is_active:
             raise InactivePhoneError("Threshold break cannot be generated for an inactive phone. "
                                      "Check that phone is enabled and not paused.")
 
-        last_unseen_trade_pair_threshold_brake = TradePair(self.phone, self.trade_pair).unseen_threshold_brakes.last()
-        is_duplicate_threshold_brake = self == last_unseen_trade_pair_threshold_brake.threshold \
-            if last_unseen_trade_pair_threshold_brake else None
-        if is_duplicate_threshold_brake:
-            return last_unseen_trade_pair_threshold_brake, False
-        ThresholdBrake.objects.create(threshold=self)
+        last_unseen_trade_pair_threshold_break = TradePair(self.phone, self.trade_pair).unseen_threshold_breaks.last()
+        is_duplicate_threshold_break = self == last_unseen_trade_pair_threshold_break.threshold \
+            if last_unseen_trade_pair_threshold_break else None
+        if is_duplicate_threshold_break:
+            return last_unseen_trade_pair_threshold_break, False
+        ThresholdBreak.objects.create(threshold=self)
 
 
 class Candle(models.Model):
@@ -384,8 +384,8 @@ class Candle(models.Model):
         return candle
 
 
-class ThresholdBrake(models.Model):
-    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='threshold_brakes')
+class ThresholdBreak(models.Model):
+    threshold = models.ForeignKey(Threshold, on_delete=models.CASCADE, related_name='threshold_breaks')
     happened_at = models.DateTimeField(auto_now_add=True)
     seen = models.BooleanField(default=False)
 

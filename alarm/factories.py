@@ -3,7 +3,7 @@ import decimal
 from django.contrib.auth import get_user_model
 from factory.django import DjangoModelFactory
 
-from alarm.models import Candle, Threshold, Phone, ThresholdBrake
+from alarm.models import Candle, Threshold, Phone, ThresholdBreak
 
 User = get_user_model()
 
@@ -44,8 +44,8 @@ class ThresholdFactory(DjangoModelFactory):
     trade_pair = 'LUNAUSDT'
 
 
-class ThresholdBrakeFactory(DjangoModelFactory):
+class ThresholdBreakFactory(DjangoModelFactory):
     class Meta:
-        model = ThresholdBrake
+        model = ThresholdBreak
 
     threshold = factory.SubFactory(ThresholdFactory)

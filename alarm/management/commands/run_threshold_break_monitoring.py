@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
                 high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
                 Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
-                TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
+                TradePair.create_thresholds_breaks_from_recent_candles_update(trade_pair)
 
                 # Placed here to be triggered after alarm message is updated due to
                 # a previous call status sync and new candles data
