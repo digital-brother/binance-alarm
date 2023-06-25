@@ -326,6 +326,10 @@ class Threshold(models.Model):
     def trade_pair_obj(self):
         return TradePair(self.phone, self.trade_pair)
 
+    @property
+    def unseen_threshold_breaks(self):
+        return self.threshold_breaks.filter(seen=False)
+
     def is_broken(self, previous_candle, current_candle):
         # TODO: handle a case when program was paused for a while and price changed a lot
         if previous_candle and current_candle:
@@ -344,11 +348,9 @@ class Threshold(models.Model):
             raise InactivePhoneError("Threshold break cannot be generated for an inactive phone. "
                                      "Check that phone is enabled and not paused.")
 
-        last_unseen_trade_pair_threshold_break = TradePair(self.phone, self.trade_pair).unseen_threshold_breaks.last()
-        is_duplicate_threshold_break = self == last_unseen_trade_pair_threshold_break.threshold \
-            if last_unseen_trade_pair_threshold_break else None
+        is_duplicate_threshold_break = bool(self.unseen_threshold_breaks)
         if is_duplicate_threshold_break:
-            return last_unseen_trade_pair_threshold_break, False
+            return None
         ThresholdBreak.objects.create(threshold=self)
 
 

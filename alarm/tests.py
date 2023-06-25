@@ -70,7 +70,6 @@ class TestCreateThresholdBreak:
         TradePair.create_thresholds_breaks_from_recent_candles_update(trade_pair)
         assert ThresholdBreak.objects.count() == 1
 
-    @pytest.mark.xfail
     def test__create_threshold_break__does_not_create_duplicate_for_two_thresholds(self, threshold):
         trade_pair = 'LUNAUSDT'
         ThresholdFactory(price=Decimal('12.00'), trade_pair=threshold.trade_pair, phone=threshold.phone)
@@ -120,7 +119,7 @@ class TestTradePairAlarmMessage:
         CandleFactory()
         trade_pair_obj = TradePair(phone=threshold_break.threshold.phone, trade_pair=threshold_break.threshold.trade_pair)
         assert trade_pair_obj.alarm_message == \
-               'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.'
+               'LUNA broken thresholds 10.0000 and the current LUNA price is 14.0000.'
 
     def test__trade_pair_alarm_message__another_trade_pair_threshold_break_not_shown(self, threshold_break):
         wing_threshold = ThresholdFactory(trade_pair='wingusdt', phone=threshold_break.threshold.phone)
@@ -128,7 +127,7 @@ class TestTradePairAlarmMessage:
         CandleFactory()
         trade_pair_obj = TradePair(phone=threshold_break.threshold.phone, trade_pair=threshold_break.threshold.trade_pair)
         assert trade_pair_obj.alarm_message == \
-               'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.'
+               'LUNA broken thresholds 10.0000 and the current LUNA price is 14.0000.'
 
     def test__trade_pair_alarm_message__three_threshold_breaks(self):
         first_threshold = ThresholdFactory()
@@ -143,7 +142,7 @@ class TestTradePairAlarmMessage:
         trade_pair_obj = TradePair(
             phone=first_threshold_break.threshold.phone, trade_pair=first_threshold_break.threshold.trade_pair)
         assert trade_pair_obj.alarm_message == \
-               'LUNA broken thresholds 10.00, 12.00, 10.00 and the current LUNA price is 14.00.'
+               'LUNA broken thresholds 10.0000, 12.0000, 10.0000 and the current LUNA price is 14.0000.'
 
 
 class TestPhoneAlarmMessage:
@@ -152,20 +151,20 @@ class TestPhoneAlarmMessage:
 
     def test__phone_alarm_message__single_trade_pair_broken(self, threshold_break, candle):
         assert threshold_break.threshold.phone.alarm_message == \
-               'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.'
+               'LUNA broken thresholds 10.0000 and the current LUNA price is 14.0000.'
 
     def test__phone_alarm_message__two_trade_pairs_broken(self, threshold_break, candle):
         threshold_two = ThresholdFactory(trade_pair='WINGUSDT', price='20.00', phone=threshold_break.threshold.phone)
         CandleFactory(trade_pair='WINGUSDT', close_price=decimal.Decimal('24.00'))
         ThresholdBreakFactory(threshold=threshold_two)
         assert threshold_break.threshold.phone.alarm_message == \
-               'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.\n' \
-               'WING broken thresholds 20.00 and the current WING price is 24.00.'
+               'LUNA broken thresholds 10.0000 and the current LUNA price is 14.0000.\n' \
+               'WING broken thresholds 20.0000 and the current WING price is 24.0000.'
 
     def test__phone_alarm_message__another_phone_trade_pair_broken(self, threshold_break, candle):
         ThresholdBreakFactory()
         assert threshold_break.threshold.phone.alarm_message == \
-               'LUNA broken thresholds 10.00 and the current LUNA price is 14.00.'
+               'LUNA broken thresholds 10.0000 and the current LUNA price is 14.0000.'
 
 
 def test__create_threshold_breaks_and_get_alarm_message():
@@ -184,8 +183,8 @@ def test__create_threshold_breaks_and_get_alarm_message():
     TradePair.create_thresholds_breaks_from_recent_candles_update(second_trade_pair)
     assert ThresholdBreak.objects.count() == 4
     assert threshold.phone.alarm_message == \
-           'LUNA broken thresholds 10.00, 12.00 and the current LUNA price is 12.00.\n' \
-           'WING broken thresholds 25.00 and the current WING price is 25.00.'
+           'LUNA broken thresholds 10.0000, 12.0000 and the current LUNA price is 12.0000.\n' \
+           'WING broken thresholds 25.0000 and the current WING price is 25.0000.'
 
 
 class TestPhoneCall:
