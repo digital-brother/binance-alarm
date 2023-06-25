@@ -35,14 +35,14 @@ class PhoneManager(models.Manager):
 
 class Phone(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='phones')
-    number = PhoneNumberField(blank=True, unique=True, region='UA')
+    number = PhoneNumberField(unique=True, region='UA')
     telegram_chat_id = models.CharField(max_length=32, unique=True)
-    enabled = models.BooleanField(default=False)
     twilio_call_sid = models.CharField(max_length=64, null=True, blank=True)
     telegram_message_id = models.PositiveBigIntegerField(null=True, blank=True)
     current_telegram_message = models.CharField(max_length=1024, null=True, blank=True)
     telegram_message_seen = models.BooleanField(default=False)
     paused_until = models.DateTimeField(null=True, blank=True)
+    enabled = models.BooleanField(default=False)
 
     objects = PhoneManager()
 

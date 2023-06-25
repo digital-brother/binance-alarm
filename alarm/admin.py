@@ -10,6 +10,12 @@ class ThresholdInline(admin.TabularInline):
 
 class PhoneAdmin(admin.ModelAdmin):
     inlines = [ThresholdInline]
+    readonly_fields = [
+        'twilio_call_sid',
+        'telegram_message_id',
+        'current_telegram_message',
+        'telegram_message_seen'
+    ]
 
     def save_model(self, request, phone, form, change):
         paused_until_changed = None
