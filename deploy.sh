@@ -9,6 +9,7 @@ echo '==== updating git master branch';
 cd /home/ubuntu/binance_alarm;
 git checkout master;
 git pull origin master;
+/home/ubuntu/.pyenv/versions/binance_alarm/bin/pip install -r requirements.txt
 /home/ubuntu/.pyenv/versions/binance_alarm/bin/python manage.py migrate;
 echo;
 echo '===== restarting processes';
