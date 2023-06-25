@@ -22,3 +22,9 @@ class NoTelegramMessageError(BinanceAlarmError):
     pass
 
 
+class InactivePhoneHasUnseenThresholdBrakesError(BinanceAlarmError):
+    pass
+
+
+class InactivePhoneError(BinanceAlarmError):
+    pass

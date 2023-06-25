@@ -4,13 +4,15 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models import Q
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 from alarm import telegram_utils, twilio_utils
 from alarm.binance_utils import get_binance_valid_trade_pairs
 from alarm.exceptions import NoAlarmMessageError, PreviousCallResultsNotFetchedError, NoPreviousCallError, \
-    TelegramMessageAlreadyExistsError, NoTelegramMessageError
+    TelegramMessageAlreadyExistsError, NoTelegramMessageError, InactivePhoneHasUnseenThresholdBrakesError, \
+    InactivePhoneError
 
 logger = logging.getLogger(f'{__name__}')
 User = get_user_model()
@@ -24,7 +26,11 @@ class CallStatus(models.TextChoices):
 
 class PhoneManager(models.Manager):
     def active(self, **kwargs):
-        return self.filter(enabled=True, paused_until__lte=timezone.now(), **kwargs)
+        return self.filter(
+            Q(enabled=True) & Q(
+                Q(paused_until__isnull=True) |
+                Q(paused_until__lte=timezone.now())),
+            **kwargs)
 
 
 class Phone(models.Model):
@@ -64,6 +70,8 @@ class Phone(models.Model):
 
     @classmethod
     def handle_user_notified_if_messages_seen(cls):
+        # In case if telegram message seen button was pressed and phone disabled,
+        # we still would like to mark threshold brakes as seen.
         for phone in cls.objects.filter(telegram_message_seen=True):
             phone.mark_threshold_brakes_as_seen()
 
@@ -159,7 +167,13 @@ class Phone(models.Model):
 
     @property
     def unseen_threshold_brakes(self):
-        return ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
+        # TODO: What if there are unseen threshold brakes for a disabled phone?
+        # Should we mark them as seen?
+        unseen_threshold_brakes = ThresholdBrake.objects.filter(threshold__phone__number=self.number, seen=False)
+        if not self.is_active and unseen_threshold_brakes:
+            raise InactivePhoneHasUnseenThresholdBrakesError
+
+        return unseen_threshold_brakes
 
     @property
     def alarm_message(self):
@@ -177,24 +191,28 @@ class Phone(models.Model):
         alarm_message = '\n'.join(trade_pairs_alarm_messages)
         return alarm_message
 
+    @property
+    def is_active(self):
+        return self in Phone.objects.active()
+
     @classmethod
     def get_needing_call_phones(cls):
-        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=True)
+        return [phone for phone in cls.objects.active().filter(twilio_call_sid__isnull=True)
                 if phone.unseen_threshold_brakes]
 
     @classmethod
     def get_needing_call_check_phones(cls):
-        return [phone for phone in cls.objects.filter(twilio_call_sid__isnull=False)
+        return [phone for phone in cls.objects.active().filter(twilio_call_sid__isnull=False)
                 if phone.unseen_threshold_brakes]
 
     @classmethod
     def get_needing_message_send_phones(cls):
-        return [phone for phone in cls.objects.filter(telegram_message_id__isnull=True)
+        return [phone for phone in cls.objects.active().filter(telegram_message_id__isnull=True)
                 if phone.unseen_threshold_brakes]
 
     @classmethod
     def get_needing_message_update_phones(cls):
-        return [phone for phone in Phone.objects.filter(telegram_message_id__isnull=False)
+        return [phone for phone in Phone.objects.active().filter(telegram_message_id__isnull=False)
                 if phone.unseen_threshold_brakes]
 
 
@@ -205,6 +223,8 @@ class TradePair:
 
     @property
     def unseen_threshold_brakes(self):
+        # TODO: What if there is an unseen threshold brake for a disabled phone?
+        # Should we mark them as seen?
         return ThresholdBrake.objects.filter(
             threshold__phone=self.phone, threshold__trade_pair=self.trade_pair, seen=False)
 
@@ -244,7 +264,8 @@ class TradePair:
 
     @classmethod
     def create_thresholds_brakes_from_recent_candles_update(cls, trade_pair):
-        thresholds = Threshold.objects.filter(trade_pair=trade_pair)
+        # We do not create threshold brakes in case if phone is inactive
+        thresholds = Threshold.objects.active().filter(trade_pair=trade_pair)
         last_candle = Candle.last_for_trade_pair(trade_pair=trade_pair)
         penultimate_candle = Candle.penultimate_for_trade_pair(trade_pair=trade_pair)
 
@@ -267,7 +288,7 @@ class TradePair:
 
 class ThresholdManager(models.Manager):
     def active(self, **kwargs):
-        return self.filter(phone__enabled=True, phone__paused_until__lte=timezone.now(), **kwargs)
+        return self.filter(phone__in=Phone.objects.active(), **kwargs)
 
 
 class Threshold(models.Model):
@@ -314,6 +335,10 @@ class Threshold(models.Model):
         return False
 
     def create_threshold_brake_if_needed(self):
+        if not self.phone.is_active:
+            raise InactivePhoneError("Threshold break cannot be generated for an inactive phone. "
+                                     "Check that phone is enabled and not paused.")
+
         last_unseen_trade_pair_threshold_brake = TradePair(self.phone, self.trade_pair).unseen_threshold_brakes.last()
         is_duplicate_threshold_brake = self == last_unseen_trade_pair_threshold_brake.threshold \
             if last_unseen_trade_pair_threshold_brake else None
