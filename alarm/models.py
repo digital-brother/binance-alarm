@@ -355,9 +355,9 @@ class Threshold(models.Model):
 class Candle(models.Model):
     trade_pair = models.CharField(max_length=255)
     modified = models.DateTimeField(auto_now=True)
-    low_price = models.DecimalField(max_digits=10, decimal_places=2)
-    high_price = models.DecimalField(max_digits=10, decimal_places=2)
-    close_price = models.DecimalField(max_digits=10, decimal_places=2)
+    low_price = models.DecimalField(max_digits=10, decimal_places=4)
+    high_price = models.DecimalField(max_digits=10, decimal_places=4)
+    close_price = models.DecimalField(max_digits=10, decimal_places=4)
 
     def __str__(self):
         trade_pair_display_name = TradePair.get_display_name(self.trade_pair)
