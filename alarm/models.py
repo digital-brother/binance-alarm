@@ -155,12 +155,16 @@ class Phone(models.Model):
         self.telegram_message_seen = False
 
         self.paused_until = timezone.now() + dt.timedelta(minutes=60)
-        paused_until_str = timezone.localtime(self.paused_until).strftime("%Y-%m-%d %H:%M:%S")
-        telegram_utils.send_message(self.telegram_chat_id, f'Bot was paused for 1 hour (until {paused_until_str}).')
 
         twilio_utils.cancel_call(self.twilio_call_sid)
         self.twilio_call_sid = None
         self.save()
+
+        self.send_phone_paused_telegram_message()
+
+    def send_phone_paused_telegram_message(self):
+        paused_until_str = timezone.localtime(self.paused_until).strftime("%Y-%m-%d %H:%M:%S")
+        telegram_utils.send_message(self.telegram_chat_id, f'Bot was paused for 1 hour (until {paused_until_str}).')
 
     @property
     def trade_pairs(self):

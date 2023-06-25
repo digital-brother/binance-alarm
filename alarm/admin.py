@@ -3,13 +3,24 @@ from django.contrib import admin
 from .models import Phone, Threshold, Candle, ThresholdBreak
 
 
-class CoinInline(admin.TabularInline):
+class ThresholdInline(admin.TabularInline):
     model = Threshold
     extra = 1
 
 
 class PhoneAdmin(admin.ModelAdmin):
-    inlines = [CoinInline]
+    inlines = [ThresholdInline]
+
+    def save_model(self, request, phone, form, change):
+        paused_until_changed = None
+        if change:
+            old_phone = Phone.objects.get(pk=phone.pk)
+            if phone.paused_until != old_phone.paused_until:
+                paused_until_changed = True
+
+        phone.save()
+        if paused_until_changed:
+            phone.send_phone_paused_telegram_message()
 
 
 # TODO: Make trade pair to be entered with no USDT prefix
