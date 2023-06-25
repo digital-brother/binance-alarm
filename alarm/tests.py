@@ -1,3 +1,5 @@
+import datetime as dt
+from django.utils import timezone
 from unittest.mock import patch, Mock
 
 import decimal
@@ -60,7 +62,6 @@ class TestCreateThresholdBrake:
         assert ThresholdBrake.objects.count() == 1
         assert ThresholdBrake.objects.first().threshold == threshold
 
-
     def test__create_threshold_brake__does_not_create_duplicate(self):
         trade_pair = 'LUNAUSDT'
         threshold = ThresholdFactory(price=Decimal('10.00'), trade_pair=trade_pair)
@@ -84,6 +85,29 @@ class TestCreateThresholdBrake:
         CandleFactory(low_price=Decimal('8.00'), high_price=Decimal('9.00'), trade_pair=trade_pair)
         TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
         assert ThresholdBrake.objects.count() == 0
+
+    def test__create_threshold_brake__phone_disabled(self):
+        trade_pair = 'LUNAUSDT'
+        phone = PhoneFactory(enabled=False)
+        threshold = ThresholdFactory(price=Decimal('10.00'), trade_pair=trade_pair, phone=phone)
+        CandleFactory(low_price=Decimal('9.00'), high_price=Decimal('11.00'), trade_pair=trade_pair)
+        TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
+        assert ThresholdBrake.objects.count() == 0
+
+    @patch('alarm.models.telegram_utils.send_message', Mock(return_value=5))
+    @patch('alarm.models.twilio_utils.cancel_call', Mock(return_value=5))
+    def test__create_threshold_brake__phone_paused(self):
+        """Checks, that after a user was notified, threshold brakes are not created """
+        trade_pair = 'LUNAUSDT'
+        threshold = ThresholdFactory(price=Decimal('10.00'), trade_pair=trade_pair)
+        CandleFactory(low_price=Decimal('9.00'), high_price=Decimal('11.00'), trade_pair=trade_pair)
+        TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
+        assert threshold.phone.unseen_threshold_brakes.count() == 1
+        threshold.phone.mark_threshold_brakes_as_seen()
+
+        CandleFactory(low_price=Decimal('9.00'), high_price=Decimal('11.00'), trade_pair=trade_pair)
+        TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
+        assert threshold.phone.unseen_threshold_brakes.count() == 0
 
 
 class TestTradePairAlarmMessage:
