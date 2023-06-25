@@ -1,11 +1,11 @@
 import logging
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
-from alarm.binance_utils import connect_binance_socket, close_binance_socket, \
+from alarm.binance_utils import connect_binance_socket, \
     parse_candle_from_websocket_update
-from alarm.models import Threshold, Candle
-from alarm.utils import any_of_trade_pair_thresholds_is_broken
+from alarm.models import Threshold, Candle, TradePair, Phone
 
 logger = logging.getLogger(f'{__name__}')
 
@@ -20,17 +20,24 @@ class Command(BaseCommand):
 
         try:
             while True:
+                # TODO: update to include phones whose thresholds were marked as seen
                 binance_data = socket.recv()
+                # Placed here to be triggered first after pause caused by socket.recv()
 
-                high_price, low_price, trade_pair = parse_candle_from_websocket_update(binance_data)
-                Candle.refresh_candle_data(trade_pair, high_price, low_price)
+                Phone.handle_user_notified_if_calls_succeed()
+                Phone.handle_user_notified_if_messages_seen()
 
-                if any_of_trade_pair_thresholds_is_broken(trade_pair):
-                    # TODO: make_call()
-                    logger.info('need call')
-                    pass
+                high_price, low_price, close_price, trade_pair = parse_candle_from_websocket_update(binance_data)
+                Candle.refresh_candle_data(trade_pair, high_price, low_price, close_price)
+                TradePair.create_thresholds_brakes_from_recent_candles_update(trade_pair)
 
-                # Check if new coin names appear in the database
+                # Placed here to be triggered after alarm message is updated due to
+                # a previous call status sync and new candles data
+                Phone.call_all_suitable_phones()
+                Phone.send_or_update_all_telegram_messages()
+
+                # TODO: recheck logic
+                # Check if new trade pair appear in the database
                 new_trade_pairs = [threshold.trade_pair for threshold in Threshold.objects.all()
                                    if threshold.trade_pair not in trade_pairs]
                 if new_trade_pairs:
@@ -40,8 +47,8 @@ class Command(BaseCommand):
                     socket = new_socket
 
         except KeyboardInterrupt:
-            close_binance_socket(socket)
+            socket.close()
         except (ValueError, KeyError) as err:
             logger.error(err)
 
-        close_binance_socket(socket)
+        socket.close()

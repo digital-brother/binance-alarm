@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Phone, Threshold, Candle
+from .models import Phone, Threshold, Candle, ThresholdBrake
 
 
 class CoinInline(admin.TabularInline):
@@ -12,8 +12,21 @@ class PhoneAdmin(admin.ModelAdmin):
     inlines = [CoinInline]
 
 
+# TODO: Make trade pair to be entered with no USDT prefix
+class ThresholdBrakeAdmin(admin.ModelAdmin):
+    model = ThresholdBrake
+    readonly_fields = ['id', 'threshold_id', 'happened_at']
+    list_display = ['phone', '__str__', 'seen']
+
+    @admin.display(description="Phone")
+    def phone(self, obj):
+        return obj.threshold.phone
+
+
 admin.site.register(Phone, PhoneAdmin)
 
 admin.site.register(Threshold)
 
 admin.site.register(Candle)
+
+admin.site.register(ThresholdBrake, ThresholdBrakeAdmin)
