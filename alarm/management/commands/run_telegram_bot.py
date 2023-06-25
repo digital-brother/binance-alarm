@@ -2,10 +2,8 @@
 For an in-depth explanation, check out
 https://github.com/python-telegram-bot/python-telegram-bot/wiki/InlineKeyboard-Example.
 """
-from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.management import BaseCommand
-from django.utils import timezone
 from telegram import Update
 from telegram.ext import Application, ContextTypes, CommandHandler
 
@@ -13,7 +11,7 @@ from alarm.models import Phone
 
 
 async def alarm_message_seen_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    phone = await Phone.objects.filter(number='+380955078262').aupdate(telegram_message_seen=True)
+    await Phone.objects.filter(telegram_chat_id=update.message.chat.id).aupdate(telegram_message_seen=True)
 
 
 def run_telegram_bot():
