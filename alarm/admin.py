@@ -1,5 +1,7 @@
 from django.contrib import admin
+from django.utils import timezone
 
+from . import telegram_utils
 from .models import Phone, Threshold, Candle, ThresholdBreak
 
 
@@ -23,10 +25,12 @@ class PhoneAdmin(admin.ModelAdmin):
             old_phone = Phone.objects.get(pk=phone.pk)
             if phone.paused_until != old_phone.paused_until:
                 paused_until_changed = True
-
         phone.save()
+
         if paused_until_changed:
-            phone.send_phone_paused_telegram_message()
+            paused_until_str = timezone.localtime(phone.paused_until).strftime("%Y-%m-%d %H:%M:%S")
+            bot_paused_message = f'Bot was paused until {paused_until_str}.'
+            telegram_utils.send_message(phone.telegram_chat_id, bot_paused_message)
 
 
 # TODO: Make trade pair to be entered with no USDT prefix
