@@ -13,9 +13,10 @@ django-extensions==3.2.1
 psycopg2==2.9.6
 django-environ==0.10.0
 
-
 pytest-django==4.5.2
 pytest-factoryboy==2.5.1
 python-telegram-bot==20.3
 twilio==8.0.0
 pytest-raises==0.11
+
+gunicorn==20.1.0
