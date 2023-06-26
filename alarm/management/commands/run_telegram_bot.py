@@ -16,7 +16,7 @@ async def alarm_message_seen_handler(update: Update, context: ContextTypes.DEFAU
 
 async def get_chat_id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    context.bot.send_message(chat_id=chat_id, text=f"Your chat ID is {chat_id}")
+    await context.bot.send_message(chat_id=chat_id, text=f"Your chat ID is {chat_id}.")
 
 
 def run_telegram_bot():
