@@ -22,7 +22,8 @@ class PhoneAdmin(admin.ModelAdmin):
 
     def get_fields(self, request, obj=None):
         if request.user.is_superuser:
-            return super().get_fields(request, obj)
+            fields = super().get_fields(request, obj)
+            return fields
         return ['user', 'number', 'telegram_chat_id', 'pause_minutes_duration', 'paused_until', 'enabled']
 
     def get_queryset(self, request):
@@ -46,6 +47,11 @@ class PhoneAdmin(admin.ModelAdmin):
 
 class ThresholdAdmin(admin.ModelAdmin):
     list_display = ['__str__', 'phone', 'phone_user']
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return super().get_queryset(request)
+        return self.model.objects.filter(phone__user=request.user)
 
     def phone_user(self, obj):
         return obj.phone.user
