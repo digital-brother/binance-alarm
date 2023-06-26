@@ -1,8 +1,11 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from . import telegram_utils
 from .models import Phone, Threshold, Candle, ThresholdBreak
+
+User = get_user_model()
 
 
 class ThresholdInline(admin.TabularInline):
@@ -25,6 +28,12 @@ class PhoneAdmin(admin.ModelAdmin):
             fields = super().get_fields(request, obj)
             return fields
         return ['user', 'number', 'telegram_chat_id', 'pause_minutes_duration', 'paused_until', 'enabled']
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser and db_field.name == 'user':
+            # Apply filtering or other restrictions on the choices
+            kwargs['queryset'] = User.objects.filter(id=request.user.id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         if request.user.is_superuser:
@@ -52,6 +61,12 @@ class ThresholdAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return super().get_queryset(request)
         return self.model.objects.filter(phone__user=request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser and db_field.name == 'phone':
+            # Apply filtering or other restrictions on the choices
+            kwargs['queryset'] = Phone.objects.filter(user=request.user)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def phone_user(self, obj):
         return obj.phone.user
