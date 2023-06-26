@@ -12,6 +12,7 @@ class ThresholdInline(admin.TabularInline):
 
 class PhoneAdmin(admin.ModelAdmin):
     inlines = [ThresholdInline]
+    list_display = ['__str__', 'user']
     readonly_fields = [
         'twilio_call_sid',
         'telegram_message_id',
@@ -33,11 +34,19 @@ class PhoneAdmin(admin.ModelAdmin):
             telegram_utils.send_message(phone.telegram_chat_id, bot_paused_message)
 
 
+class ThresholdAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'phone', 'phone_user']
+
+    def phone_user(self, obj):
+        return obj.phone.user
+    phone_user.short_description = 'User'
+
+
 # TODO: Make trade pair to be entered with no USDT prefix
 class ThresholdBreakAdmin(admin.ModelAdmin):
     model = ThresholdBreak
     readonly_fields = ['id', 'threshold_id', 'happened_at']
-    list_display = ['phone', '__str__', 'seen']
+    list_display = ['__str__', 'phone', 'seen']
 
     @admin.display(description="Phone")
     def phone(self, obj):
@@ -46,7 +55,7 @@ class ThresholdBreakAdmin(admin.ModelAdmin):
 
 admin.site.register(Phone, PhoneAdmin)
 
-admin.site.register(Threshold)
+admin.site.register(Threshold, ThresholdAdmin)
 
 admin.site.register(Candle)
 
