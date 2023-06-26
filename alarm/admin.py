@@ -20,6 +20,16 @@ class PhoneAdmin(admin.ModelAdmin):
         'telegram_message_seen'
     ]
 
+    def get_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return super().get_fields(request, obj)
+        return ['user', 'number', 'telegram_chat_id', 'pause_minutes_duration', 'paused_until', 'enabled']
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return super().get_queryset(request)
+        return self.model.objects.filter(user=request.user)
+
     def save_model(self, request, phone, form, change):
         paused_until_changed = None
         if change:

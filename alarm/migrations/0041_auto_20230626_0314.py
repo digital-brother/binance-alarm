@@ -10,12 +10,8 @@ def add_user_group(apps, schema_editor):
     phone_content_type = ContentType.objects.get_for_model(Phone)
     phone_permissions = Permission.objects.filter(content_type=phone_content_type)
 
-    Threshold = apps.get_model('alarm', 'Threshold')
-    threshold_content_type = ContentType.objects.get_for_model(Threshold)
-    threshold_permissions = Permission.objects.filter(content_type=threshold_content_type)
-
     user_group = Group.objects.get_or_create(name='User')[0]
-    user_group.permissions.add(*phone_permissions, *threshold_permissions)
+    user_group.permissions.add(*phone_permissions)
 
 
 class Migration(migrations.Migration):
