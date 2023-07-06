@@ -23,10 +23,14 @@ class PhoneAdmin(admin.ModelAdmin):
         'telegram_message_seen'
     ]
 
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return super().get_readonly_fields(request, obj)
+        return ['user', 'number', 'telegram_chat_id', 'pause_minutes_duration', 'paused_until']
+
     def get_fields(self, request, obj=None):
         if request.user.is_superuser:
-            fields = super().get_fields(request, obj)
-            return fields
+            return super().get_fields(request, obj)
         return ['user', 'number', 'telegram_chat_id', 'pause_minutes_duration', 'paused_until', 'enabled']
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
