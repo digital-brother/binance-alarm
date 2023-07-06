@@ -161,9 +161,8 @@ STATIC_ROOT = 'static'
 SENTRY_DSN = env.str('SENTRY_DSN')
 sentry_sdk.init(
     dsn=SENTRY_DSN,
-    integrations=[
-        DjangoIntegration(),
-    ],
+    integrations=[DjangoIntegration()],
+    environment=env.str('ENVIRONMENT'),
 
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
