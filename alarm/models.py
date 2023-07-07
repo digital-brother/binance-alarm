@@ -303,9 +303,6 @@ class Threshold(models.Model):
 
     objects = ThresholdManager()
 
-    class Meta:
-        unique_together = ['phone', 'trade_pair', 'price']
-
     def __str__(self):
         trade_pair_display_name = TradePair.get_display_name(self.trade_pair)
         return f"{trade_pair_display_name}: {self.price}"
