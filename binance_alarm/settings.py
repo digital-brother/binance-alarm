@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     # External app
     'phonenumber_field',
     'django_extensions',
-    'django_slack',
 ]
 
 MIDDLEWARE = [
@@ -138,26 +137,16 @@ LOGGING = {
             "style": "{",
         },
     },
-    # "filters": {
-    #     "require_debug_false": {
-    #         "()": "django.utils.log.RequireDebugFalse",
-    #     },
-    # },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
-        'slack_admins': {
-            'level': 'ERROR',
-            # 'filters': ['require_debug_false'],
-            'class': 'django_slack.log.SlackExceptionHandler',
-        },
     },
     "loggers": {
         "": {
             "level": "DEBUG",
-            "handlers": ["console", 'slack_admins'],
+            "handlers": ["console"],
         },
     },
 }
@@ -184,5 +173,3 @@ sentry_sdk.init(
     # django.contrib.auth) you may enable sending PII data.
     send_default_pii=True
 )
-
-SLACK_WEBHOOK_URL = env.str('SLACK_WEBHOOK_URL')
