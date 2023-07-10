@@ -82,6 +82,7 @@ class ThresholdBreakAdmin(admin.ModelAdmin):
     model = ThresholdBreak
     readonly_fields = ['id', 'threshold_id', 'happened_at']
     list_display = ['__str__', 'phone', 'seen']
+    list_filter = ["threshold__trade_pair"]
 
     @admin.display(description="Phone")
     def phone(self, obj):
