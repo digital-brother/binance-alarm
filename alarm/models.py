@@ -299,7 +299,7 @@ class ThresholdManager(models.Manager):
 class Threshold(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='thresholds')
     trade_pair = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=10, decimal_places=4)
+    price = models.DecimalField(max_digits=10, decimal_places=8)
 
     objects = ThresholdManager()
 
